@@ -473,7 +473,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
     <select id="bKubun"></select>
     <label class="f">着工前・完成の対比</label>
     <div class="seg" id="bState"><button data-st="">対比なし</button><button data-st="着工前">着工前</button><button data-st="完成">完成</button></div>
-    <label class="f" for="bTitle">写真タイトル（空欄なら自動）</label>
+    <label class="f" for="bTitle">写真タイトル（空欄なら中央の欄に書いた内容）</label>
     <input type="text" id="bTitle">
   </div>
   <div class="tab" id="tab-items">
@@ -823,10 +823,10 @@ function layout(b,W,H,d){
   const fac=b.small?0.62:(b.narrow?0.58:1);        // 豆黒板・縦長は幅を細くする
   const bw=b.bwPx||Math.min(b.size*L*fac, W*0.96);
   const base=bw/fac;                                 // 文字の大きさは標準の黒板と同じにする
-  const rh=base*(b.small?0.093:0.078);               // 1行の高さ（枠は低め）
+  const rh=base*(b.small?0.093:0.072);               // 1行の高さ（枠は低めにして中央の欄を広く）
   const fr = D.frame==='wood' ? base*0.035 : D.frame==='silver' ? base*0.02 : 0;
   const sh = D.stripe ? rh*0.38 : 0;
-  const hasExtra=b.blocks.some(x=>x.t==='sketch'||x.t==='table');
+  // 行（項目）
   const items=b.blocks.map((bl,bi)=>{
     if(bl.t==='row'){
       const v=rowValue(b,bl,d);
@@ -835,11 +835,40 @@ function layout(b,W,H,d){
       if(D.layout==='title'&&bl.key==='kouji') h=rh*1.3;
       return {t:'row',bi,key:bl.key,label:bl.label||'',value:v,h};
     }
-    if(bl.t==='main'){ const compact=hasExtra; return {t:'main',bi,text:bl.text||'',date:bl.date!==false,compact,h:compact?rh*1.35:rh*(b.narrow?3.6:3.0)}; }
-    if(bl.t==='table') return {t:'table',bi,head:bl.head||['','',''],rows:bl.rows||[],diff:!!bl.diff,h:rh*1.0*(1+(bl.rows||[]).length)};
-    if(bl.t==='sketch') return {t:'sketch',bi,shapes:bl.shapes||[],h:rh*(b.narrow?6.2:4.6)};
+    if(bl.t==='main') return {t:'main',bi,text:bl.text||'',date:bl.date!==false,h:0};
+    if(bl.t==='table') return {t:'table',bi,head:bl.head||['','',''],rows:bl.rows||[],diff:!!bl.diff,h:0};
+    if(bl.t==='sketch') return {t:'sketch',bi,shapes:bl.shapes||[],h:0};
     return null;
   }).filter(Boolean);
+  // 黒板の縦横比は一定（横長 4:3 弱／縦長）。中央の欄は「残りの高さ」を使い、絵や表を入れても黒板の大きさは変わらない
+  const rowsH=items.filter(i=>i.t==='row').reduce((s,i)=>s+i.h,0);
+  const mids=items.filter(i=>i.t!=='row');
+  if(mids.length){
+    const target=bw*(b.small?0.62:b.narrow?1.5:0.76);
+    const midH=Math.max(rh*2.6, target-rowsH-fr*2-sh);
+    const mn=mids.find(i=>i.t==='main'), sk=mids.find(i=>i.t==='sketch'), tb=mids.find(i=>i.t==='table');
+    let th = tb ? rh*0.86 : 0, tbH = tb ? th*(1+tb.rows.length) : 0;
+    let mnH = mn ? (sk||tb ? rh*1.05 : midH) : 0;
+    if(sk && tb && !b.narrow){ // 横長：絵（左）と表（右）を並べて、どちらも中央の欄の高さいっぱいを使う
+      const A=midH-mnH;
+      if(mn){ mn.h=mnH; mn.compact=true; }
+      Object.assign(sk,{h:A,wf:0.5,adv:false});
+      Object.assign(tb,{h:A,x0:0.5,wf:0.5,th:Math.min(rh*1.5,A/(1+tb.rows.length))});
+      const h=fr*2+sh+items.reduce((s,i)=>s+(i.adv===false?0:i.h),0);
+      const m=Math.round(L*0.004);
+      let x = b.x==null ? W-bw-m : b.x*W, y = b.y==null ? H-h-m : b.y*H;
+      x=clamp(x,0,Math.max(0,W-bw)); y=clamp(y,0,Math.max(0,H-h));
+      return {x,y,w:bw,h,rh,fr,sh,items,D,small:!!b.small,narrow:!!b.narrow};
+    }
+    if(mn && tb && !sk) mnH=Math.max(rh*1.05, midH-tbH);
+    let skH = sk ? midH-tbH-mnH : 0;
+    if(sk && skH<rh*1.6){ const avail=Math.max(rh*0.9*(1+tb.rows.length), midH-mnH-rh*1.6); th=avail/(1+tb.rows.length); tbH=avail; skH=midH-tbH-mnH; }
+    if(!mn && !sk && tb){ th=midH/(1+tb.rows.length); tbH=midH; }
+    if(!mn && sk) skH=midH-tbH;
+    if(mn){ mn.h=mnH; mn.compact=mnH<rh*1.9; }
+    if(sk) sk.h=Math.max(rh,skH);
+    if(tb){ tb.h=tbH; tb.th=th; }
+  }
   const h=fr*2+sh+items.reduce((s,i)=>s+i.h,0);
   const m=Math.round(L*0.004);
   let x = b.x==null ? W-bw-m : b.x*W, y = b.y==null ? H-h-m : b.y*H;
@@ -925,25 +954,29 @@ function drawBoard(ctx,b,W,H,d){
     yy+=r.h;
   };
   const drawTable=it=>{
-    sep();
-    const n=it.diff?4:3, ws=it.diff?[0.31,0.23,0.23,0.23]:[0.4,0.3,0.3], cw=ws.map(v=>v*iw), th=rh*1.0;
-    ctx.lineWidth=thin;
+    const side=!!it.x0, x0=ix+iw*(it.x0||0), tw=iw*(it.wf||1), y0=yy;
+    if(!side) sep();
+    const n=it.diff?4:3, ws=it.diff?[0.31,0.23,0.23,0.23]:[0.4,0.3,0.3], cw=ws.map(v=>v*tw), th=it.th||rh*0.86;
+    ctx.lineWidth=thin; ctx.strokeStyle=D.line;
+    if(side&&!plain) ln(x0,y0,x0,y0+it.h);
     [it.head.slice(0,n), ...it.rows.map(r=>it.diff?[r.a,r.b,r.c,calcDiff(r.b,r.c)]:[r.a,r.b,r.c])].forEach((r,i)=>{
-      if(i>0) ln(ix,yy,ix+iw,yy); else if(plain) ln(ix+rh*0.2,yy+th,ix+iw-rh*0.2,yy+th);
-      let xx=ix;
+      if(i>0) ln(x0,yy,x0+tw,yy); else if(plain) ln(x0+rh*0.2,yy+th,x0+tw-rh*0.2,yy+th);
+      let xx=x0;
       r.forEach((v,j)=>{ if(j>0&&!plain) ln(xx,yy,xx,yy+th);
-        if(i===0){ ctx.fillStyle=D.lab; spreadText(ctx,v,xx+cw[j]/2,yy+th/2,cw[j]*0.82,rh*0.4); }
-        else { ctx.fillStyle=D.fg; fitText(ctx,v,xx+cw[j]/2,yy+th/2,cw[j]*0.88,rh*0.46,'center',true); }
+        if(i===0){ ctx.fillStyle=D.lab; spreadText(ctx,v,xx+cw[j]/2,yy+th/2,cw[j]*0.86,Math.min(rh*0.4,th*0.5)); }
+        else { ctx.fillStyle=D.fg; fitText(ctx,v,xx+cw[j]/2,yy+th/2,cw[j]*0.9,Math.min(rh*0.46,th*0.56),'center',true); }
         hit('cell',it.bi,xx,yy,cw[j],th,{r:i-1,c:j});
         xx+=cw[j]; });
       yy+=th;
     });
+    if(side){ if(!plain) ln(x0,yy,x0+tw,yy); yy=y0+it.h; it.rect=[x0,y0,tw,it.h]; }
   };
   const drawSketch=it=>{
     sep();
-    const pd=rh*0.15;
-    drawShapes(ctx,it.shapes,ix+pd,yy+pd,iw-pd*2,it.h-pd*2,D.fg);
-    hit('sketch',it.bi,ix,yy,iw,it.h);
+    const pd=rh*0.15, w=iw*(it.wf||1);
+    drawShapes(ctx,it.shapes,ix+pd,yy+pd,w-pd*2,it.h-pd*2,D.fg);
+    hit('sketch',it.bi,ix,yy,w,it.h);
+    if(it.adv===false){ it.rect=[ix,yy,w,it.h]; return; } // 横に表が並ぶときは下へ進めない
     yy+=it.h;
   };
   const drawMain=it=>{
@@ -963,7 +996,7 @@ function drawBoard(ctx,b,W,H,d){
     hit('main',it.bi,ix,yy,iw,it.h);
     yy+=it.h;
   };
-  g.items.forEach(it=>{ it.y0=yy; it.t==='row'?drawRow(it) : it.t==='table'?drawTable(it) : it.t==='sketch'?drawSketch(it) : drawMain(it); it.rect=[ix,it.y0,iw,yy-it.y0]; });
+  g.items.forEach(it=>{ it.y0=yy; it.t==='row'?drawRow(it) : it.t==='table'?drawTable(it) : it.t==='sketch'?drawSketch(it) : drawMain(it); if(!it.rect) it.rect=[ix,it.y0,iw,yy-it.y0]; });
   if(!plain){ ctx.lineWidth=thick; ctx.strokeStyle=D.line; ctx.strokeRect(ix+thick/2,iy+thick/2,iw-thick,ih-thick); }
   ctx.restore();
   return g;
@@ -1052,7 +1085,13 @@ function drawCover(ctx,src,sw,sh,W,H){
 }
 function canvasToBlob(c,q){ return new Promise(r=>c.toBlob(r,'image/jpeg',q)); }
 
-function photoTitle(b){ if(b.title) return b.title; const v=b.values; return [b.state||'', v.shubetsu||v.koushu||b.pname||'', v.sokuten||''].filter(Boolean).join(' '); }
+// 写真タイトル：基本は中央の欄に書いた内容（例：完了）。空のときは工種・測点などから作る
+function photoTitle(b){
+  if(b.title) return b.title;
+  const mt=(mainText(b)||'').replace(/\s+/g,'').trim();
+  if(mt) return mt;
+  const v=b.values; return [b.state||'', v.shubetsu||v.koushu||b.pname||'', v.sokuten||''].filter(Boolean).join(' ');
+}
 function buildMeta(d,W,H){
   const v=board.values, tb=tableOf(board);
   return {
