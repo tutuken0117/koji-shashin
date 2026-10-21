@@ -1,6 +1,6 @@
 // オフラインでも開けるようにするための仕組み（新しい版があればネットから取得、圏外なら保存済みの版を使う）
-const CACHE = 'koji-shashin-v1';
-const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
+const CACHE = 'koji-shashin-v2';
+const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
