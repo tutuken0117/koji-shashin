@@ -65,9 +65,6 @@ body.shooting header{display:none}
 .boardbtn .s{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .boardbtn .e{margin-left:auto;background:#3fa775;color:#06130c;border-radius:10px;padding:6px 12px;font-weight:700;font-size:14px;white-space:nowrap}
 .row{display:flex;gap:8px;align-items:center}
-.sokuten{display:flex;align-items:center;gap:6px;min-width:0}
-.sokuten button{width:50px;height:46px;border-radius:12px;border:0;background:rgba(10,14,12,.6);color:#fff;font-size:20px}
-.sokuten .val{flex:1;min-width:0;text-align:center;font-weight:700;font-size:17px;background:rgba(10,14,12,.6);border-radius:12px;padding:9px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
 .chip{border:1.5px solid rgba(255,255,255,.35);background:rgba(10,14,12,.55);color:#e6ece8;border-radius:22px;padding:6px 12px;font-size:14px;min-height:38px}
 .chip.on{background:#3fa775;border-color:#3fa775;color:#06130c;font-weight:700}
@@ -78,18 +75,22 @@ body.shooting header{display:none}
 .shutter.burst{background:#ff6b5b}
 .count{width:64px;white-space:nowrap;text-align:center;font-size:12px;color:#fff;text-shadow:0 1px 3px #000}
 .count b{display:block;font-size:22px}
-@media (orientation:landscape){
-  .sbar{top:0;bottom:0;width:clamp(150px,21vw,250px);justify-content:center;padding-block:8px}
-  .stop{left:0;right:auto;padding-left:max(10px,env(safe-area-inset-left,0px));padding-right:8px;justify-content:flex-start;padding-top:10px}
-  .sbottom{right:0;left:auto;padding-right:max(10px,env(safe-area-inset-right,0px));padding-left:8px}
-  .ctop{flex-direction:column;align-items:stretch}
-  .ctop .iconbtn{align-self:flex-start}
-  .boardbtn .e{display:none}
-  .shutterrow{flex-direction:column;gap:10px;padding:0}
-  .sokuten{flex-wrap:wrap}
-  .sokuten .val{flex-basis:100%;order:-1;font-size:15px;padding:6px}
-  .sokuten button{flex:1;width:auto;height:40px}
-}
+/* 撮影は横向き専用：左に黒板・測点、右にシャッター */
+.sbar{top:0;bottom:0;width:clamp(150px,21vw,250px);justify-content:center;padding-block:8px}
+.stop{left:0;right:auto;padding-left:max(10px,env(safe-area-inset-left,0px));padding-right:8px;justify-content:flex-start;padding-top:10px}
+.sbottom{right:0;left:auto;padding-right:max(10px,env(safe-area-inset-right,0px));padding-left:8px}
+.ctop{flex-direction:column;align-items:stretch}
+.ctop .iconbtn{align-self:flex-start}
+.boardbtn .e{display:none}
+.shutterrow{flex-direction:column;gap:10px;padding:0}
+.stval{border:0;border-radius:12px;background:rgba(10,14,12,.6);color:#fff;font-weight:700;font-size:16px;padding:8px 10px;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rotate{display:none;position:absolute;inset:0;z-index:10;background:#111;color:#fff;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:24px}
+.rotate .ph{font-size:64px;animation:rot 2s ease-in-out infinite}
+.rotate b{font-size:20px}
+.rotate small{font-size:14px;color:#cfd8d3;line-height:1.6}
+@keyframes rot{0%,30%{transform:rotate(0)}60%,100%{transform:rotate(-90deg)}}
+@media (prefers-reduced-motion:reduce){.rotate .ph{animation:none}}
+@media (orientation:portrait){ .rotate{display:flex} }
 /* メニュー */
 .modal.top{align-items:flex-start}
 .menusheet{border-radius:0 0 18px 18px;max-width:480px}
@@ -209,6 +210,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
         <div class="hint" id="dragHint">黒板は指で動かせます</div>
         <div class="flash" id="flash"></div>
       </div>
+      <div class="rotate" id="rotateMsg"><div class="ph">📱</div><b>スマホを横向きにしてください</b><small>撮影は横向き専用です。<br>横にしても画面が回らないときは、画面の縦向きロックを解除してください。</small><button class="btn" id="rotMenu" style="margin-top:8px;background:#26302b;color:#fff;border-color:#3c4842">☰ メニューを開く</button></div>
       <div class="sbar stop">
         <div class="ctop">
           <button class="iconbtn" id="menuBtn" aria-label="メニュー">☰</button>
@@ -217,14 +219,10 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
             <span class="e">黒板を編集</span>
           </button>
         </div>
+        <button class="stval" id="stVal">測点 未入力</button>
         <div class="chips"><button class="chip" id="chGuide">着工前を重ねる</button></div>
       </div>
       <div class="sbar sbottom">
-        <div class="sokuten">
-          <button id="stPrev" aria-label="測点を戻す">◀</button>
-          <div class="val" id="stVal">測点 未入力</div>
-          <button id="stNext" aria-label="測点を進める">▶</button>
-        </div>
         <div class="shutterrow">
           <button class="last" id="lastBtn" aria-label="撮影した写真"></button>
           <button class="shutter" id="shutter" aria-label="撮影"></button>
@@ -393,7 +391,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
   <ol class="steps">
     <li><b>工事を設定</b><br><span class="muted">上の緑の帯をタップして、工事名と施工者を入れます（最初の1回だけ）。</span></li>
     <li><b>黒板を選んで書く</b><br><span class="muted">「黒板を編集」から種類（着工前・完成・出来形など）を選び、工種・種別・測点を入れます。</span></li>
-    <li><b>シャッターを押す</b><br><span class="muted">黒板入りの写真がすぐ保存されるので、続けてどんどん撮れます。シャッター長押しで連写します。スマホを横にしても撮れます。左上の「☰メニュー」で写真一覧や設定に移ります。</span></li>
+    <li><b>シャッターを押す</b><br><span class="muted">黒板入りの写真がすぐ保存されるので、続けてどんどん撮れます。シャッター長押しで連写します。撮影はスマホを横向きにして行います。左上の「☰」で写真一覧や設定に移ります。</span></li>
   </ol>
   <div class="note">💡 <b>着工前と完成の対比</b>：完成を撮るとき「着工前を重ねる」をオンにすると、同じ測点の着工前写真が半透明で表示されます。同じ角度で撮れば「対比」画面できれいに並びます。</div>
   <div class="note" style="margin-top:8px">📤 撮り終わったら「書き出し」→「電子納品形式」でZIPを作り、写管屋に取り込みます。</div>
@@ -630,7 +628,7 @@ function stopCam(){ if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=
 let curCrop=null;
 function fitCam(){
   const R=$('#v-shoot').getBoundingClientRect(); if(!R.width) return;
-  const portrait=R.height>R.width, ar=portrait?3/4:4/3;
+  const ar=4/3; // 撮影は横向き専用
   let fw=R.width, fh=fw/ar; if(fh>R.height){ fh=R.height; fw=fh*ar; }
   const fx=(R.width-fw)/2, fy=(R.height-fh)/2;
   Object.assign(cam.style,{left:fx+'px',top:fy+'px',width:fw+'px',height:fh+'px'});
@@ -671,7 +669,8 @@ function drawOverlay(){
   overlay.addEventListener('pointerup',end); overlay.addEventListener('pointercancel',end);
 })();
 
-function outSize(sw,sh){ const L=QUALITY[prefs.quality]||1280, S=Math.round(L*3/4); return sh>sw?{W:S,H:L}:{W:L,H:S}; }
+function outSize(){ const L=QUALITY[prefs.quality]||1280; return {W:L,H:Math.round(L*3/4)}; } // 常に横長
+const isPortrait=()=>window.innerHeight>window.innerWidth;
 function drawCover(ctx,src,sw,sh,W,H){
   const a=W/H; let cw=sw, ch=sw/a; if(ch>sh){ ch=sh; cw=sh*a; }
   ctx.drawImage(src,(sw-cw)/2,(sh-ch)/2,cw,ch,0,0,W,H);
@@ -713,7 +712,9 @@ async function storePhoto(p){
 }
 let busy=false, pending=null;
 async function shoot(fromBurst){
-  if(busy) return; if(!camReady){ $('#fileCap').click(); return; }
+  if(busy) return;
+  if(isPortrait()){ toast('スマホを横向きにして撮影してください',2000); return; }
+  if(!camReady){ $('#fileCap').click(); return; }
   if(!proj().name){ openFirst(); return; }
   busy=true;
   try{
@@ -770,9 +771,8 @@ function stepSokuten(s,d){
   if(m2){ const n=Math.max(0,parseInt(m2[1],10)+d); return s.slice(0,m2.index)+n+s.slice(m2.index+m2[1].length); }
   return s+' '+(d>0?1:0);
 }
-$('#stPrev').onclick=()=>{ board.values.sokuten=stepSokuten(board.values.sokuten,-1); saveBoard(); renderShootInfo(); };
-$('#stNext').onclick=()=>{ board.values.sokuten=stepSokuten(board.values.sokuten,1); saveBoard(); renderShootInfo(); };
 $('#stVal').onclick=()=>openBoard();
+$('#rotMenu').onclick=()=>openMenu();
 
 /* ===================== 撮影画面の表示 ===================== */
 function renderShootInfo(){
@@ -839,14 +839,13 @@ function renderBoardEditor(){
     const lab=(t.labels&&t.labels[k])||FIELD_LABEL[k]; const id='bf_'+k;
     const dl={koushu:'dlKoushu',shubetsu:'dlShubetsu',saibetsu:'dlSaibetsu'}[k];
     if(k==='sokuten'){
-      fb.insertAdjacentHTML('beforeend',`<label class="f" for="${id}">${lab}</label><div class="stbtns"><button data-d="-1" aria-label="戻す">◀</button><input type="text" id="${id}" placeholder="例：No.12+5.0"><button data-d="1" aria-label="進める">▶</button></div>`);
+      fb.insertAdjacentHTML('beforeend',`<label class="f" for="${id}">${lab}</label><input type="text" id="${id}" placeholder="例：No.12+5.0">`);
     } else {
       fb.insertAdjacentHTML('beforeend',`<label class="f" for="${id}">${lab}</label><input type="text" id="${id}" ${dl?`list="${dl}"`:''} placeholder="${{koushu:'例：舗装工',shubetsu:'例：表層工',saibetsu:'例：密粒度アスコン'}[k]||''}">`);
     }
     const inp=$('#'+id); inp.value=board.values[k]||'';
     inp.oninput=()=>{ board.values[k]=inp.value; saveBoard(); renderShootInfo(); };
   });
-  fb.querySelectorAll('.stbtns button').forEach(b=>b.onclick=()=>{ board.values.sokuten=stepSokuten(board.values.sokuten,+b.dataset.d); $('#bf_sokuten').value=board.values.sokuten; saveBoard(); renderShootInfo(); });
   const tb=$('#tableBox'); tb.innerHTML='';
   if(t.table){
     tb.insertAdjacentHTML('beforeend',`<label class="f">${t.table.join('・')}</label><div class="trow muted" style="font-size:12px"><div>${t.table[0]}</div><div>${t.table[1]}</div><div>${t.table[2]}</div><div></div></div>`);
@@ -1154,7 +1153,7 @@ function show(v){
   $$('.view').forEach(s=>s.classList.toggle('on',s.id==='v-'+v));
   $$('#menuList button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
   document.body.classList.toggle('shooting',v==='shoot');
-  if(v==='shoot'){ startCam(); fitCam(); renderShootInfo(); } else stopCam();
+  if(v==='shoot'){ startCam(); fitCam(); renderShootInfo(); try{ screen.orientation?.lock?.('landscape').catch(()=>{}); }catch(e){} } else stopCam();
   if(v==='list') renderList(); if(v==='cmp') renderCmp(); if(v==='exp') renderExp(); if(v==='set') renderSet();
 }
 function openMenu(){ openModal('mMenu'); }
