@@ -27,6 +27,7 @@ html,body{margin:0;height:100%}
 body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:16px;line-height:1.5;overflow:hidden}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
+[hidden]{display:none!important}
 button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 #app{display:flex;flex-direction:column;height:100%}
 header{display:flex;align-items:center;gap:8px;padding-block:8px;padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px));background:var(--accent);color:#fff}
@@ -34,59 +35,68 @@ header{display:flex;align-items:center;gap:8px;padding-block:8px;padding-left:ma
 header .pj{flex:1;min-width:0;background:rgba(255,255,255,.14);border:0;border-radius:10px;padding:6px 10px;text-align:left;color:#fff}
 header .pj small{display:block;font-size:11px;opacity:.8}
 header .pj b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:15px}
-header .help{width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.18);color:#fff;font-size:20px;font-weight:700}
+header .hbtn{flex:none;min-width:48px;height:48px;border-radius:12px;border:0;background:rgba(255,255,255,.18);color:#fff;font-size:22px;font-weight:700;padding:0 10px}
+header .hbtn.camgo{font-size:15px;background:#fff;color:#1f6b47}
 main{flex:1;min-height:0;position:relative}
 .view{position:absolute;inset:0;overflow:auto;display:none;padding-block:12px 24px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .view.on{display:block}
-#v-shoot{padding:0;display:none;flex-direction:column;background:var(--cam);color:#fff;overflow:hidden}
-#v-shoot.on{display:flex}
-nav{display:flex;background:var(--panel);border-top:1px solid var(--line);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
-nav button{flex:1;border:0;background:none;padding:6px 0 8px;font-size:12px;color:var(--sub);display:flex;flex-direction:column;align-items:center;gap:1px;min-height:56px}
-nav button .ic{font-size:22px;line-height:1.2}
-nav button.on{color:var(--accent);font-weight:700}
 
-/* camera */
-body.shooting header,body.shooting nav{display:none}
-.camwrap{flex:1;min-height:0;min-width:0;display:flex;align-items:center;justify-content:center}
-.cam{position:relative;width:100%;height:100%;background:#000;overflow:hidden;touch-action:none}
-.cam video,.cam .guide,.cam canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+/* 撮影画面（全画面）：映像を画面いっぱいに出し、写る範囲（枠）の外は少し暗くする */
+body.shooting header{display:none}
+#v-shoot{padding:0;background:#000;color:#fff;overflow:hidden}
+#v-shoot.on{display:block}
+#video{position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover}
+.cam{position:absolute;left:0;top:0;width:100%;height:100%;box-shadow:0 0 0 200vmax rgba(0,0,0,.45);outline:1px solid rgba(255,255,255,.55);touch-action:none}
+.cam .guide,.cam canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .cam .guide{pointer-events:none;display:none}
 .cam .msg{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:16px;color:#ddd;font-size:15px}
-.cam .tag{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.6);padding:4px 10px;border-radius:20px;font-size:13px;display:none}
+.cam .tag{position:absolute;top:8px;left:8px;right:8px;width:max-content;max-width:calc(100% - 16px);background:rgba(0,0,0,.6);padding:4px 10px;border-radius:20px;font-size:13px;display:none}
 .cam .flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .25s}
-.cam .hint{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.55);padding:4px 10px;border-radius:20px;font-size:12px}
-.ctrl{flex:none;padding-block:8px 10px;padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:8px}
-.ctop{display:flex;gap:8px;min-width:0}
+.cam .hint{position:absolute;bottom:8px;left:8px;background:rgba(0,0,0,.55);padding:4px 10px;border-radius:20px;font-size:12px;pointer-events:none}
+.sbar{position:absolute;left:0;right:0;z-index:3;display:flex;flex-direction:column;gap:8px;padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px));pointer-events:none}
+.sbar>*{pointer-events:auto}
+.stop{top:0;padding-top:10px}
+.sbottom{bottom:0;padding-bottom:14px}
+.ctop{display:flex;gap:8px;align-items:center;min-width:0}
 .ctop .boardbtn{flex:1;min-width:0}
-.menu{flex:none;width:58px;border:0;border-radius:12px;background:#26302b;color:#fff;font-size:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1;gap:2px}
-.menu span{font-size:10px}
-@media (orientation:landscape){
-  #v-shoot.on{flex-direction:row}
-  .ctrl{width:clamp(220px,32vw,290px);justify-content:center;gap:6px;overflow-x:hidden;overflow-y:auto;padding-block:6px}
-  .ctop{order:0}.sokuten{order:1}.shutterrow{order:2}.chips{order:3}
-  .boardbtn{padding:8px 10px;min-width:0}.boardbtn .e{display:none}
-  .menu{width:50px}
-  .chip{padding:4px 10px;min-height:34px;font-size:13px}
-  .sokuten button{height:40px}.sokuten .val{padding:6px}
-}
-.boardbtn{display:flex;align-items:center;gap:10px;width:100%;border:0;border-radius:12px;background:#26302b;color:#fff;padding:10px 12px;text-align:left}
+.iconbtn{flex:none;width:50px;height:50px;border-radius:50%;border:0;background:rgba(10,14,12,.6);color:#fff;font-size:24px;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.boardbtn{display:flex;align-items:center;gap:10px;width:100%;border:0;border-radius:14px;background:rgba(10,14,12,.6);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);color:#fff;padding:8px 10px 8px 12px;text-align:left}
 .boardbtn .k{font-size:12px;color:#9fd3b6}
 .boardbtn .s{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .boardbtn .e{margin-left:auto;background:#3fa775;color:#06130c;border-radius:10px;padding:6px 12px;font-weight:700;font-size:14px;white-space:nowrap}
 .row{display:flex;gap:8px;align-items:center}
 .sokuten{display:flex;align-items:center;gap:6px;min-width:0}
-.sokuten button{width:48px;height:44px;border-radius:10px;border:0;background:#26302b;color:#fff;font-size:20px}
-.sokuten .val{flex:1;min-width:0;text-align:center;font-weight:700;font-size:17px;background:#26302b;border-radius:10px;padding:8px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sokuten button{width:50px;height:46px;border-radius:12px;border:0;background:rgba(10,14,12,.6);color:#fff;font-size:20px}
+.sokuten .val{flex:1;min-width:0;text-align:center;font-weight:700;font-size:17px;background:rgba(10,14,12,.6);border-radius:12px;padding:9px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
-.chip{border:1.5px solid #3c4842;background:transparent;color:#cfd8d3;border-radius:22px;padding:6px 12px;font-size:14px;min-height:38px}
+.chip{border:1.5px solid rgba(255,255,255,.35);background:rgba(10,14,12,.55);color:#e6ece8;border-radius:22px;padding:6px 12px;font-size:14px;min-height:38px}
 .chip.on{background:#3fa775;border-color:#3fa775;color:#06130c;font-weight:700}
 .shutterrow{display:flex;align-items:center;justify-content:space-between;padding:0 8px}
-.last{width:56px;height:56px;border-radius:10px;background:#26302b center/cover no-repeat;border:2px solid #444}
-.shutter{width:78px;height:78px;border-radius:50%;border:5px solid #fff;background:#e9eee9;box-shadow:0 0 0 3px #3fa775 inset;touch-action:none;user-select:none;-webkit-user-select:none}
+.last{width:56px;height:56px;border-radius:12px;background:rgba(10,14,12,.6) center/cover no-repeat;border:2px solid rgba(255,255,255,.6)}
+.shutter{width:80px;height:80px;border-radius:50%;border:5px solid #fff;background:rgba(255,255,255,.92);box-shadow:0 0 0 3px #3fa775 inset,0 2px 10px rgba(0,0,0,.4);touch-action:none;user-select:none;-webkit-user-select:none}
 .shutter:active{transform:scale(.94)}
 .shutter.burst{background:#ff6b5b}
-.count{width:64px;white-space:nowrap;text-align:center;font-size:12px;color:#cfd8d3}
-.count b{display:block;font-size:22px;color:#fff}
+.count{width:64px;white-space:nowrap;text-align:center;font-size:12px;color:#fff;text-shadow:0 1px 3px #000}
+.count b{display:block;font-size:22px}
+@media (orientation:landscape){
+  .sbar{top:0;bottom:0;width:clamp(150px,21vw,250px);justify-content:center;padding-block:8px}
+  .stop{left:0;right:auto;padding-left:max(10px,env(safe-area-inset-left,0px));padding-right:8px;justify-content:flex-start;padding-top:10px}
+  .sbottom{right:0;left:auto;padding-right:max(10px,env(safe-area-inset-right,0px));padding-left:8px}
+  .ctop{flex-direction:column;align-items:stretch}
+  .ctop .iconbtn{align-self:flex-start}
+  .boardbtn .e{display:none}
+  .shutterrow{flex-direction:column;gap:10px;padding:0}
+  .sokuten{flex-wrap:wrap}
+  .sokuten .val{flex-basis:100%;order:-1;font-size:15px;padding:6px}
+  .sokuten button{flex:1;width:auto;height:40px}
+}
+/* メニュー */
+.modal.top{align-items:flex-start}
+.menusheet{border-radius:0 0 18px 18px;max-width:480px}
+.menulist{display:flex;flex-direction:column;gap:6px}
+.menulist button{display:flex;align-items:center;gap:14px;min-height:56px;border:0;border-radius:12px;background:var(--bg);padding:8px 14px;font-size:17px;font-weight:700;text-align:left}
+.menulist button.on{background:var(--accent-soft);color:var(--accent)}
+.menulist .ic{font-size:24px;width:32px;text-align:center}
 
 /* common */
 h2{font-size:19px;margin:6px 0 10px}
@@ -181,41 +191,39 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
 <body>
 <div id="app">
   <header>
+    <button class="hbtn" id="hdMenu" aria-label="メニュー">☰</button>
     <button class="pj" id="pjBtn"><small>工事</small><b id="pjName">工事を設定してください</b></button>
-    <button class="help" id="helpBtn" aria-label="使い方">?</button>
+    <button class="hbtn camgo" id="hdShoot">📷 撮影</button>
   </header>
   <main>
-    <!-- 撮影 -->
+    <!-- 撮影（全画面） -->
     <section class="view on" id="v-shoot">
-      <div class="camwrap">
-        <div class="cam" id="cam">
-          <video id="video" playsinline muted autoplay></video>
-          <img class="guide" id="guide" alt="">
-          <canvas id="overlay"></canvas>
-          <div class="msg" id="camMsg">
-            <div>カメラを準備しています…</div>
-          </div>
-          <div class="tag" id="guideTag">着工前の写真を重ねています（同じ位置に合わせて撮影）</div>
-          <div class="hint" id="dragHint">黒板は指で動かせます</div>
-          <div class="flash" id="flash"></div>
+      <video id="video" playsinline muted autoplay></video>
+      <div class="cam" id="cam">
+        <img class="guide" id="guide" alt="">
+        <canvas id="overlay"></canvas>
+        <div class="msg" id="camMsg">
+          <div>カメラを準備しています…</div>
         </div>
+        <div class="tag" id="guideTag">着工前の写真を重ねています（同じ位置に合わせて撮影）</div>
+        <div class="hint" id="dragHint">黒板は指で動かせます</div>
+        <div class="flash" id="flash"></div>
       </div>
-      <div class="ctrl">
+      <div class="sbar stop">
         <div class="ctop">
-          <button class="menu" id="menuBtn" aria-label="メニュー">☰<span>メニュー</span></button>
+          <button class="iconbtn" id="menuBtn" aria-label="メニュー">☰</button>
           <button class="boardbtn" id="boardBtn">
             <div style="min-width:0"><div class="k" id="bbKind">黒板：標準</div><div class="s" id="bbSum">工種を入力してください</div></div>
             <span class="e">黒板を編集</span>
           </button>
         </div>
+        <div class="chips"><button class="chip" id="chGuide">着工前を重ねる</button></div>
+      </div>
+      <div class="sbar sbottom">
         <div class="sokuten">
           <button id="stPrev" aria-label="測点を戻す">◀</button>
           <div class="val" id="stVal">測点 未入力</div>
           <button id="stNext" aria-label="測点を進める">▶</button>
-        </div>
-        <div class="chips">
-          <button class="chip" id="chAdv">撮るたび測点を進める</button>
-          <button class="chip" id="chGuide">着工前を重ねる</button>
         </div>
         <div class="shutterrow">
           <button class="last" id="lastBtn" aria-label="撮影した写真"></button>
@@ -315,13 +323,18 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
       </div>
     </section>
   </main>
-  <nav id="nav">
-    <button data-v="shoot" class="on"><span class="ic">📷</span>撮影</button>
-    <button data-v="list"><span class="ic">🖼️</span>写真</button>
-    <button data-v="cmp"><span class="ic">↔️</span>対比</button>
-    <button data-v="exp"><span class="ic">📤</span>書き出し</button>
-    <button data-v="set"><span class="ic">⚙️</span>設定</button>
-  </nav>
+  <!-- メニュー -->
+  <div class="modal top" id="mMenu"><div class="sheet menusheet">
+    <div class="hd"><h2>メニュー</h2><button class="x" data-close aria-label="閉じる">✕</button></div>
+    <div class="menulist" id="menuList">
+      <button data-v="shoot"><span class="ic">📷</span>撮影する</button>
+      <button data-v="list"><span class="ic">🖼️</span>撮影した写真</button>
+      <button data-v="cmp"><span class="ic">↔️</span>着工前・完成の対比</button>
+      <button data-v="exp"><span class="ic">📤</span>書き出し（写管屋へ）</button>
+      <button data-v="set"><span class="ic">⚙️</span>設定（工事・画質）</button>
+      <button data-v="help"><span class="ic">❔</span>使い方</button>
+    </div>
+  </div></div>
 </div>
 
 <!-- 黒板編集 -->
@@ -479,7 +492,8 @@ const uid = ()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const pad2=n=>String(n).padStart(2,'0');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const proj=()=>projects.find(p=>p.id===curPj)||{id:'',name:'',sekou:'',daibunrui:'工事'};
+const DEFAULT_SEKOU='筒賀建設株式会社';
+const proj=()=>projects.find(p=>p.id===curPj)||{id:'',name:'',sekou:DEFAULT_SEKOU,daibunrui:'工事'};
 const tplOf=id=>TEMPLATES.find(t=>t.id===id)||TEMPLATES[0];
 const fmtDate=d=>`${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;
 const isoDate=d=>`${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
@@ -501,7 +515,7 @@ function toast(msg,ms=1600){ const t=$('#toast'); t.textContent=msg; t.classList
 /* ===================== 黒板の描画 ===================== */
 function fieldValue(b,k,d){
   if(k==='kouji') return proj().name;
-  if(k==='sekou') return proj().sekou;
+  if(k==='sekou') return proj().sekou||DEFAULT_SEKOU;
   if(k==='hacchu') return proj().hacchu||'';
   if(k==='date') return fmtDate(d||new Date());
   return b.values[k]||'';
@@ -611,13 +625,23 @@ async function startCam(){
   }
 }
 function stopCam(){ if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; camReady=false; } }
-// 写る範囲（4:3）を画面いっぱいの最大サイズで表示する
+// 全画面表示：写る範囲（縦3:4／横4:3）の枠を画面いっぱいの最大サイズで中央に置き、
+// カメラ映像はその枠と写真の範囲がぴったり重なるように拡大して画面全体に表示する
+let curCrop=null;
 function fitCam(){
-  const wrap=cam.parentElement.getBoundingClientRect(); if(!wrap.width) return;
-  const portrait = camReady ? video.videoHeight>video.videoWidth : wrap.height>wrap.width*1.15;
-  const ar = portrait?3/4:4/3;
-  let w=wrap.width, h=w/ar; if(h>wrap.height){ h=wrap.height; w=h*ar; }
-  cam.style.width=Math.floor(w)+'px'; cam.style.height=Math.floor(h)+'px';
+  const R=$('#v-shoot').getBoundingClientRect(); if(!R.width) return;
+  const portrait=R.height>R.width, ar=portrait?3/4:4/3;
+  let fw=R.width, fh=fw/ar; if(fh>R.height){ fh=R.height; fw=fh*ar; }
+  const fx=(R.width-fw)/2, fy=(R.height-fh)/2;
+  Object.assign(cam.style,{left:fx+'px',top:fy+'px',width:fw+'px',height:fh+'px'});
+  curCrop=null;
+  if(camReady&&video.videoWidth){
+    const vw=video.videoWidth, vh=video.videoHeight;
+    let cw=vw, ch=vw/ar; if(ch>vh){ ch=vh; cw=vh*ar; }
+    const cx=(vw-cw)/2, cy=(vh-ch)/2, s=fw/cw;
+    Object.assign(video.style,{objectFit:'fill',left:(fx-cx*s)+'px',top:(fy-cy*s)+'px',width:(vw*s)+'px',height:(vh*s)+'px'});
+    curCrop={sx:cx,sy:cy,sw:cw,sh:ch};
+  }
   drawOverlay();
 }
 video.addEventListener('resize',()=>fitCam());
@@ -667,10 +691,11 @@ function buildMeta(d,W,H){
     rep:false, exported:false
   };
 }
-async function composePhoto(src,sw,sh){
-  const d=new Date(); const {W,H}=outSize(sw,sh);
+async function composePhoto(src,sw,sh,crop){
+  const d=new Date(); const {W,H}=crop?outSize(crop.sw,crop.sh):outSize(sw,sh);
   const c=document.createElement('canvas'); c.width=W; c.height=H;
-  const ctx=c.getContext('2d'); drawCover(ctx,src,sw,sh,W,H);
+  const ctx=c.getContext('2d');
+  if(crop) ctx.drawImage(src,crop.sx,crop.sy,crop.sw,crop.sh,0,0,W,H); else drawCover(ctx,src,sw,sh,W,H);
   drawBoard(ctx,board,W,H,d);
   const meta=buildMeta(d,W,H);
   const raw=new Uint8Array(await (await canvasToBlob(c,0.88)).arrayBuffer());
@@ -685,7 +710,6 @@ async function storePhoto(p){
   $('#cnt').textContent=sessionCount;
   ['koushu','shubetsu','saibetsu'].forEach(k=>{ const v=p[k]; if(v){ history[k]=[v,...history[k].filter(x=>x!==v)].slice(0,30); } });
   LS.set('history',history); fillDatalists(); setLastThumb();
-  if(prefs.advance){ board.values.sokuten=stepSokuten(board.values.sokuten,1); saveBoard(); renderShootInfo(); }
 }
 let busy=false, pending=null;
 async function shoot(fromBurst){
@@ -695,7 +719,8 @@ async function shoot(fromBurst){
   try{
     const f=$('#flash'); f.style.transition='none'; f.style.opacity=.85; requestAnimationFrame(()=>{ f.style.transition='opacity .3s'; f.style.opacity=0; });
     navigator.vibrate?.(30);
-    const p=await composePhoto(video,video.videoWidth,video.videoHeight);
+    if(!curCrop) fitCam();
+    const p=await composePhoto(video,video.videoWidth,video.videoHeight,curCrop);
     await storePhoto(p); toast(`保存しました（今回 ${sessionCount}枚目）`,900);
   }catch(e){ console.error(e); toast('保存できませんでした：'+e.message,3000); }
   finally{ busy=false; }
@@ -756,9 +781,8 @@ function renderShootInfo(){
   const sum=[v.koushu,v.shubetsu,v.saibetsu].filter(Boolean).join(' ／ ');
   $('#bbSum').textContent= keysOf(t).includes('koushu') ? (sum||'工種を入力してください') : (v.zairyo||mainText(board)||t.desc);
   $('#stVal').textContent='測点 '+(v.sokuten||'未入力');
-  $('#chAdv').classList.toggle('on',prefs.advance);
   $('#chGuide').classList.toggle('on',prefs.guide);
-  $('#chGuide').style.display = board.tpl==='after'?'':'none';
+  $('#chGuide').parentElement.hidden = board.tpl!=='after';
   drawOverlay();
 }
 function findBefore(p){ // 同じ工種・種別・測点の着工前（最新）
@@ -773,8 +797,7 @@ function updateGuide(){
 function setLastThumb(){ const p=photos.slice().sort((a,b)=>b.ts-a.ts)[0]; $('#lastBtn').style.backgroundImage=p?`url(${objUrl(p,'thumb')})`:''; }
 function objUrl(p,k){ const key=p.id+k; if(!urlCache.has(key)) urlCache.set(key,URL.createObjectURL(p[k])); return urlCache.get(key); }
 
-$('#menuBtn').onclick=()=>show('list');
-$('#chAdv').onclick=()=>{ prefs.advance=!prefs.advance; savePrefs(); renderShootInfo(); toast(prefs.advance?'撮るたびに測点が1つ進みます':'測点の自動送りオフ'); };
+$('#menuBtn').onclick=()=>openMenu();
 $('#chGuide').onclick=()=>{ prefs.guide=!prefs.guide; savePrefs(); renderShootInfo(); if(prefs.guide&&!findBefore(board.values)) toast('同じ工種・種別・測点の着工前写真がありません',2400); };
 $('#lastBtn').onclick=()=>show('list');
 $('#boardBtn').onclick=()=>openBoard();
@@ -1110,7 +1133,7 @@ function renderSet(){
   if(navigator.storage?.estimate) navigator.storage.estimate().then(e=>{ $('#storeInfo').textContent=`写真はこの端末のブラウザ内に保存されます（使用量 約${Math.round((e.usage||0)/1048576)}MB）。こまめに書き出してください。`; }).catch(()=>{});
 }
 $('#pjSel').onchange=async e=>{ curPj=e.target.value; saveProjects(); await switchProject(); renderSet(); };
-$('#pjAdd').onclick=async()=>{ const p={id:uid(),name:'',sekou:proj().sekou,daibunrui:'工事'}; projects.push(p); curPj=p.id; saveProjects(); await switchProject(); renderSet(); $('#pjN').focus(); };
+$('#pjAdd').onclick=async()=>{ const p={id:uid(),name:'',sekou:proj().sekou||DEFAULT_SEKOU,hacchu:proj().hacchu||'',daibunrui:'工事'}; projects.push(p); curPj=p.id; saveProjects(); await switchProject(); renderSet(); $('#pjN').focus(); };
 ['pjN','pjS','pjH','pjD'].forEach(id=>$('#'+id).addEventListener('input',()=>{ const p=projects.find(p=>p.id===curPj); if(!p) return; p.name=$('#pjN').value; p.sekou=$('#pjS').value; p.hacchu=$('#pjH').value; p.daibunrui=$('#pjD').value; saveProjects(); renderHeader(); }));
 $('#pjD').addEventListener('change',()=>$('#pjD').dispatchEvent(new Event('input')));
 $$('#qSeg button').forEach(b=>b.onclick=()=>{ prefs.quality=b.dataset.q; savePrefs(); renderSet(); });
@@ -1129,16 +1152,18 @@ let curView='shoot';
 function show(v){
   curView=v;
   $$('.view').forEach(s=>s.classList.toggle('on',s.id==='v-'+v));
-  $$('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+  $$('#menuList button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
   document.body.classList.toggle('shooting',v==='shoot');
   if(v==='shoot'){ startCam(); fitCam(); renderShootInfo(); } else stopCam();
   if(v==='list') renderList(); if(v==='cmp') renderCmp(); if(v==='exp') renderExp(); if(v==='set') renderSet();
 }
-$$('#nav button').forEach(b=>b.onclick=()=>show(b.dataset.v));
+function openMenu(){ openModal('mMenu'); }
+$$('#menuList button').forEach(b=>b.onclick=()=>{ closeModal('mMenu'); if(b.dataset.v==='help') openModal('mHelp'); else show(b.dataset.v); });
+$('#hdMenu').onclick=()=>openMenu();
+$('#hdShoot').onclick=()=>show('shoot');
 $('#pjBtn').onclick=()=>show('set');
-$('#helpBtn').onclick=()=>openModal('mHelp');
 function renderHeader(){ $('#pjName').textContent=proj().name||'工事を設定してください'; }
-function openFirst(){ $('#fN').value=proj().name; $('#fS').value=proj().sekou; $('#fH').value=proj().hacchu||''; openModal('mFirst'); setTimeout(()=>$('#fN').focus(),100); }
+function openFirst(){ $('#fN').value=proj().name; $('#fS').value=proj().sekou||DEFAULT_SEKOU; $('#fH').value=proj().hacchu||''; openModal('mFirst'); setTimeout(()=>$('#fN').focus(),100); }
 $('#fGo').onclick=async()=>{
   const n=$('#fN').value.trim(); if(!n){ toast('工事名を入力してください'); return; }
   let p=projects.find(p=>p.id===curPj); if(!p){ p={id:uid(),daibunrui:'工事'}; projects.push(p); curPj=p.id; }
