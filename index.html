@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#1f4a35">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="工事写真">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
 <title>かんたん工事写真</title>
 <style>
 :root{
@@ -213,6 +218,37 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-
 .steps li::before{content:counter(s);position:absolute;left:0;top:0;width:36px;height:36px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px}
 .note{background:var(--accent-soft);border-radius:12px;padding:10px 12px;font-size:14px}
 code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
+/* 絵を描く画面（全画面） */
+.modal.full{align-items:stretch;justify-content:stretch;background:#111}
+.skpane{display:flex;width:100%;height:100%;background:#1b1f1d;color:#fff}
+.sktools{display:grid;grid-template-columns:repeat(2,58px);align-content:start;gap:4px;padding:6px;padding-left:max(6px,env(safe-area-inset-left,0px));overflow-y:auto;background:#141816;flex:none}
+.sktools button{width:58px;min-height:48px;border:0;border-radius:10px;background:#26302b;color:#fff;font-size:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1;padding:4px 0}
+.sktools button span{font-size:10px;margin-top:2px}
+.sktools button.on{background:#3fa775;color:#06130c}
+.sktools button.parts{background:#f2b705;color:#111}
+.skmain{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;padding:6px;padding-right:max(6px,env(safe-area-inset-right,0px))}
+.sktext{min-height:42px!important;background:#26302b!important;color:#fff!important;border-color:#3c4842!important}
+.skwrap{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
+#skCanvas{touch-action:none;border-radius:6px;box-shadow:0 0 0 1px #3c4842}
+.skfoot{display:flex;gap:8px;justify-content:flex-end}
+.skfoot .btn{min-height:44px;background:#26302b;color:#fff;border-color:#3c4842}
+.skfoot .btn.pri{background:#3fa775;color:#06130c;border-color:#3fa775}
+.tpls.parts canvas{aspect-ratio:12/5}
+/* 候補リスト */
+.pklist{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;max-height:46vh;overflow-y:auto}
+.pkrow{display:flex;gap:6px}
+.pkw{flex:1;min-height:48px;border:1.5px solid var(--line);border-radius:10px;background:var(--bg);text-align:left;padding:8px 12px;font-size:16px;font-weight:700}
+.pkdel{width:48px;border:1.5px solid var(--line);border-radius:10px;background:var(--panel);color:var(--warn)}
+.inrow{display:flex;gap:6px;align-items:stretch}
+.inrow input,.inrow textarea{flex:1;min-width:0}
+.inrow .pk{flex:none;width:52px;border:1.5px solid var(--accent);border-radius:10px;background:var(--accent-soft);color:var(--accent);font-size:13px;font-weight:700;line-height:1.1}
+.trow4{display:grid;grid-template-columns:1.3fr 1fr 1fr .8fr 40px;gap:4px;margin-bottom:6px;align-items:center}
+.trow4 input{min-height:44px;padding:6px}
+.trow4 .df{text-align:center;font-weight:700;font-variant-numeric:tabular-nums}
+.trow4>button{height:44px;border:1.5px solid var(--line);border-radius:10px;background:var(--panel);color:var(--warn)}
+.skprev{width:100%;aspect-ratio:12/5;border-radius:8px;display:block;margin:4px 0 6px;cursor:pointer}
+.dkchip{border:0;border-radius:12px;background:rgba(242,183,5,.9);color:#111;font-weight:700;font-size:14px;padding:8px 10px;text-align:left}
+.dkchip.on{background:#ff8a3d}
 </style>
 </head>
 <body>
@@ -233,7 +269,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
           <div>カメラを準備しています…</div>
         </div>
         <div class="tag" id="guideTag">着工前の写真を重ねています（同じ位置に合わせて撮影）</div>
-        <div class="hint" id="dragHint">黒板は指で動かせます</div>
+        <div class="hint" id="dragHint">黒板をタップで編集・ドラッグで移動</div>
         <div class="flash" id="flash"></div>
       </div>
       <div class="rotate" id="rotateMsg"><div class="ph">📱</div><b>スマホを横向きにしてください</b><small>撮影は横向き専用です。<br>横にしても画面が回らないときは、画面の縦向きロックを解除してください。</small><button class="btn" id="rotMenu" style="margin-top:8px;background:#26302b;color:#fff;border-color:#3c4842">☰ メニューを開く</button></div>
@@ -247,6 +283,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
         </div>
         <button class="stval" id="stVal">測点 未入力</button>
         <button class="stval sw2" id="swBtn">📋 黒板を切替</button>
+        <button class="dkchip" id="dkBtn">📐 出来形モード</button>
         <div class="chips"><button class="chip" id="chGuide">着工前を重ねる</button></div>
       </div>
       <div class="sbar sbottom">
@@ -380,7 +417,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
   <div class="tab" id="tab-items">
     <p class="muted" style="margin-top:0">項目名を書きかえたり、▲▼で並べ替え、✕で削除できます。「入る内容」で工種・測点などを選ぶと、写管屋の分類にも使われます。</p>
     <div id="itemsBox"></div>
-    <div class="btns" style="margin-top:8px"><button class="btn" id="addRow">＋ 項目</button><button class="btn" id="addMain">＋ 大きな文字欄</button><button class="btn" id="addTable">＋ 表</button></div>
+    <div class="btns" style="margin-top:8px"><button class="btn" id="addRow">＋ 項目</button><button class="btn" id="addMain">＋ 大きな文字欄</button><button class="btn" id="addTable">＋ 表</button><button class="btn" id="addSketch">＋ 絵（略図）</button></div>
     <div class="toggle" style="margin-top:8px"><div>小さい黒板（豆黒板）</div><label class="sw"><input type="checkbox" id="optSmall"><span></span></label></div>
     <div class="toggle"><div>黒板を写さない</div><label class="sw"><input type="checkbox" id="optNone"><span></span></label></div>
   </div>
@@ -438,6 +475,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
     <li><b>シャッターを押す</b><br><span class="muted">黒板入りの写真がすぐ保存されるので、続けてどんどん撮れます。シャッター長押しで連写します。撮影はスマホを横向きにして行います。左上の「☰」で写真一覧や設定に移ります。</span></li>
   </ol>
   <div class="note">💡 <b>着工前と完成の対比</b>：完成を撮るとき「着工前を重ねる」をオンにすると、同じ測点の着工前写真が半透明で表示されます。同じ角度で撮れば「対比」画面できれいに並びます。</div>
+  <div class="note" style="margin-top:8px">📲 <b>上のアドレス欄を消して全画面で使うには</b>：iPhoneはSafariの共有ボタン →「ホーム画面に追加」、Androidはメニュー（︙）→「ホーム画面に追加」または「アプリをインストール」。ホーム画面のアイコンから開くと全画面になります。</div>
   <div class="note" style="margin-top:8px">📤 撮り終わったら「書き出し」→「電子納品形式」でZIPを作り、写管屋に取り込みます。</div>
   <div class="sticky-go"><button class="btn pri block" data-close>はじめる</button></div>
 </div></div>
@@ -459,6 +497,42 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
   <div class="btns"><button class="btn" id="akNo">やめる</button><button class="btn danger" id="akOk">削除する</button></div>
 </div></div>
 
+<!-- 絵を描く -->
+<div class="modal full" id="mSketch"><div class="skpane">
+  <div class="sktools" id="skTools">
+    <button data-tool="pen">✏️<span>ペン</span></button>
+    <button data-tool="line">／<span>直線</span></button>
+    <button data-tool="dim">↔<span>寸法線</span></button>
+    <button data-tool="rect">▭<span>四角</span></button>
+    <button data-tool="circle">◯<span>円</span></button>
+    <button data-tool="text">Ａ<span>文字</span></button>
+    <button data-tool="erase">🧽<span>消す</span></button>
+    <button id="skUndo">↶<span>戻す</span></button>
+    <button id="skClear">🗑<span>全消し</span></button>
+    <button id="skParts" class="parts">📦<span>部品</span></button>
+  </div>
+  <div class="skmain">
+    <input type="text" id="skText" class="sktext" placeholder="書く文字（例：B=300）→ 置きたい場所をタップ" hidden>
+    <div class="skwrap" id="skWrap"><canvas id="skCanvas"></canvas></div>
+    <div class="skfoot"><button class="btn" id="skCancel">やめる</button><button class="btn pri" id="skDone">✓ 黒板に入れる</button></div>
+  </div>
+</div></div>
+
+<!-- 部品（製品の絵） -->
+<div class="modal" id="mParts"><div class="sheet">
+  <div class="hd"><h2>部品（製品の絵）</h2><button class="x" data-close aria-label="閉じる">✕</button></div>
+  <p class="muted" style="margin-top:0">選ぶと今の絵と入れ替わります（「戻す」で元に戻せます）。</p>
+  <div class="tpls parts" id="partsGrid"></div>
+</div></div>
+
+<!-- 文字の候補 -->
+<div class="modal" id="mPick"><div class="sheet">
+  <div class="hd"><h2 id="pkTitle">候補</h2><button class="x" data-close aria-label="閉じる">✕</button></div>
+  <div id="pkList" class="pklist"></div>
+  <button class="btn block" id="pkCurBtn" hidden></button>
+  <label class="f" for="pkNew">新しい候補を登録</label>
+  <div class="row"><input type="text" id="pkNew" placeholder="例：舗装工"><button class="btn pri" id="pkAdd" style="flex:none">登録</button></div>
+</div></div>
 <datalist id="dlKoushu"></datalist><datalist id="dlShubetsu"></datalist><datalist id="dlSaibetsu"></datalist>
 <div class="toast" id="toast"></div>
 
@@ -474,7 +548,9 @@ const TEMPLATES = [
   {id:'before',   name:'着工前',    kubun:'着手前及び完成写真', state:'着工前', top:['kouji','koushu','sokuten'], main:'着工前', bottom:['hacchu','sekou'], desc:'工事を始める前'},
   {id:'after',    name:'完成',      kubun:'着手前及び完成写真', state:'完成',   top:['kouji','koushu','sokuten'], main:'完 了', bottom:['hacchu','sekou'], desc:'着工前と同じ位置で'},
   {id:'joukyou',  name:'施工状況',  kubun:'施工状況写真',     top:['kouji','koushu','shubetsu','sokuten'], main:'施工中', bottom:['sekou'], desc:'作業中のようす'},
-  {id:'dekigata', name:'出来形管理',kubun:'出来形管理写真',   top:['kouji','koushu','shubetsu','sokuten'], table:['測定項目','設計値','実測値'], bottom:['sekou'], desc:'寸法・設計値と実測値'},
+  {id:'dekigata', name:'出来形管理',kubun:'出来形管理写真',   top:['kouji','koushu','shubetsu','sokuten'], sketch:true, table:['測定項目','設計値','実測値','差'], diff:true, bottom:['sekou'], desc:'略図＋設計・実測・差'},
+  {id:'dekigata2',name:'出来形（表のみ）',kubun:'出来形管理写真', top:['kouji','koushu','shubetsu','sokuten'], table:['測定項目','設計値','実測値','差'], diff:true, bottom:['sekou'], desc:'設計・実測・差の表'},
+  {id:'kenshu',   name:'製品検収',  kubun:'使用材料写真',     top:['kouji','zairyo','kikaku'], sketch:'u', table:['測定項目','規格値','実測値','差'], diff:true, bottom:['sekou'], desc:'製品の絵＋寸法'},
   {id:'hinshitsu',name:'品質管理',  kubun:'品質管理写真',     top:['kouji','koushu','shubetsu','sokuten'], table:['試験項目','規格値','測定値'], bottom:['sekou'], desc:'試験・温度・密度など'},
   {id:'dankai',   name:'段階確認',  kubun:'施工状況写真',     top:['kouji','koushu','sokuten','kakunin'], main:'段階確認', bottom:['tachiai','sekou'], desc:'監督員の段階確認'},
   {id:'tachiai',  name:'立会',      kubun:'施工状況写真',     top:['kouji','koushu','sokuten'], main:'立 会', bottom:['tachiai','sekou'], desc:'立会・検査'},
@@ -504,6 +580,62 @@ const DESIGNS = [
 ];
 const COLOR_TO_DESIGN={green:'std',black:'kuro',white:'wb',navy:'kon'};
 const designOf=b=>DESIGNS.find(x=>x.id===b.design)||DESIGNS[0];
+/* ===================== 略図（絵）と差の自動計算 ===================== */
+// 絵は横2.4：縦1の枠に対する割合の座標で持ち、黒板の文字色で描く（拡大しても線がきれい）
+const SK_AR=2.4;
+function drawShapes(ctx,shapes,x,y,w,h,color){
+  if(!shapes||!shapes.length) return;
+  const bw=Math.min(w,h*SK_AR), bh=bw/SK_AR, ox=x+(w-bw)/2, oy=y+(h-bh)/2;
+  const P=p=>[ox+p[0]*bw, oy+p[1]*bh];
+  ctx.save();
+  ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=Math.max(1,bh*0.014); ctx.lineCap='round'; ctx.lineJoin='round'; ctx.textBaseline='middle';
+  const arrow=(a,b)=>{ const ang=Math.atan2(b[1]-a[1],b[0]-a[0]), s=bh*0.045; ctx.beginPath(); ctx.moveTo(b[0],b[1]); ctx.lineTo(b[0]-s*Math.cos(ang-0.45),b[1]-s*Math.sin(ang-0.45)); ctx.lineTo(b[0]-s*Math.cos(ang+0.45),b[1]-s*Math.sin(ang+0.45)); ctx.closePath(); ctx.fill(); };
+  shapes.forEach(s=>{
+    if(s.t==='path'&&s.pts&&s.pts.length){ ctx.beginPath(); s.pts.forEach((p,i)=>{ const q=P(p); i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]); }); if(s.closed) ctx.closePath(); ctx.stroke(); }
+    else if(s.t==='line'){ const a=P(s.a),b=P(s.b); ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.stroke(); }
+    else if(s.t==='rect'){ const a=P(s.a),b=P(s.b); ctx.strokeRect(Math.min(a[0],b[0]),Math.min(a[1],b[1]),Math.abs(b[0]-a[0]),Math.abs(b[1]-a[1])); }
+    else if(s.t==='circle'){ const c=P(s.c); ctx.beginPath(); ctx.arc(c[0],c[1],s.r*bh,0,Math.PI*2); ctx.stroke(); }
+    else if(s.t==='dim'){
+      const a=P(s.a),b=P(s.b); ctx.save(); ctx.lineWidth=Math.max(1,bh*0.008);
+      ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.stroke(); arrow(a,b); arrow(b,a);
+      if(s.s){ const mx=(a[0]+b[0])/2, my=(a[1]+b[1])/2, vert=Math.abs(b[1]-a[1])>Math.abs(b[0]-a[0]);
+        ctx.font=`700 ${bh*0.1}px ${FONT}`; ctx.textAlign=vert?'left':'center';
+        ctx.fillText(s.s, vert?mx+bh*0.03:mx, vert?my:my-bh*0.065); }
+      ctx.restore();
+    }
+    else if(s.t==='text'){ const p=P(s.p); ctx.font=`700 ${(s.size||0.1)*bh}px ${FONT}`; ctx.textAlign=s.al||'center'; ctx.fillText(s.s||'',p[0],p[1]); }
+  });
+  ctx.restore();
+}
+// 差＝実測−設計（小数の桁は入力に合わせる）
+function calcDiff(b,c){
+  const norm=v=>String(v??'').replace(/[０-９．－]/g,ch=>String.fromCharCode(ch.charCodeAt(0)-0xFEE0)).replace(/ー|−/g,'-').trim();
+  const B=norm(b), C=norm(c); if(!B||!C) return '';
+  const nb=parseFloat(B), nc=parseFloat(C); if(isNaN(nb)||isNaN(nc)) return '';
+  const dec=s=>{ const m=s.match(/\.(\d+)/); return m?m[1].length:0; };
+  const k=Math.max(dec(B),dec(C)), d=nc-nb;
+  if(Math.abs(d)<Math.pow(10,-k)/2) return '±'+(0).toFixed(k);
+  return (d>0?'+':'')+d.toFixed(k);
+}
+// よく使う製品の絵（横240×縦100の目盛りで作成）
+const FG=(x,y)=>[x/240,y/100];
+const poly=(...pts)=>({t:'path',closed:true,pts:pts.map(p=>FG(p[0],p[1]))});
+const dimS=(x1,y1,x2,y2,s)=>({t:'dim',a:FG(x1,y1),b:FG(x2,y2),s});
+const lineS=(x1,y1,x2,y2)=>({t:'line',a:FG(x1,y1),b:FG(x2,y2)});
+const rectS=(x1,y1,x2,y2)=>({t:'rect',a:FG(x1,y1),b:FG(x2,y2)});
+const nameS=s=>({t:'text',p:FG(6,10),s,size:0.11,al:'left'});
+const FIGURES=[
+  {id:'u',      name:'U字溝',           shapes:[nameS('U字溝'),poly([80,18],[92,18],[92,73],[148,73],[148,18],[160,18],[160,85],[80,85]),dimS(92,9,148,9,'B'),dimS(172,18,172,85,'H'),dimS(80,95,160,95,'W')]},
+  {id:'lwall',  name:'L型擁壁',         shapes:[nameS('L型擁壁'),poly([100,10],[114,10],[114,72],[185,72],[185,86],[80,86],[80,72],[100,72]),dimS(68,10,68,86,'H'),dimS(80,95,185,95,'B'),dimS(100,4,114,4,'t')]},
+  {id:'lgutter',name:'L形側溝',         shapes:[nameS('L形側溝'),poly([70,35],[88,35],[88,62],[185,70],[185,85],[70,85]),dimS(70,95,185,95,'W'),dimS(58,35,58,85,'H')]},
+  {id:'curb',   name:'歩車道境界ブロック', shapes:[nameS('歩車道境界ブロック'),poly([105,14],[132,14],[138,20],[138,86],[99,86],[99,20]),dimS(99,95,138,95,'W'),dimS(150,14,150,86,'H')]},
+  {id:'jisaki', name:'地先境界ブロック', shapes:[nameS('地先境界ブロック'),rectS(102,30,138,86),dimS(102,95,138,95,'W'),dimS(150,30,150,86,'H')]},
+  {id:'hume',   name:'ヒューム管',       shapes:[nameS('ヒューム管'),{t:'circle',c:FG(120,50),r:0.40},{t:'circle',c:FG(120,50),r:0.32},dimS(97,50,143,50,'D'),dimS(165,10,165,90,'外径')]},
+  {id:'masu',   name:'集水桝',           shapes:[nameS('集水桝'),rectS(80,10,160,90),rectS(92,22,148,78),dimS(92,50,148,50,'B'),dimS(172,22,172,78,'L')]},
+  {id:'box',    name:'ボックスカルバート', shapes:[nameS('ボックスカルバート'),rectS(70,10,170,90),rectS(82,22,158,78),lineS(82,30,90,22),lineS(150,22,158,30),lineS(82,70,90,78),lineS(150,78,158,70),dimS(82,50,158,50,'B'),dimS(182,22,182,78,'H')]},
+  {id:'grating',name:'側溝蓋・グレーチング', shapes:[nameS('側溝蓋'),rectS(60,25,180,75),...[70,80,90,100,110,120,130,140,150,160,170].map(x=>lineS(x,25,x,75)),dimS(60,88,180,88,'L'),dimS(192,25,192,75,'W')]},
+  {id:'pave',   name:'舗装断面',         shapes:[nameS('舗装断面'),rectS(50,22,190,34),rectS(50,34,190,54),rectS(50,54,190,84),{t:'text',p:FG(120,28),s:'表層',size:0.08},{t:'text',p:FG(120,44),s:'上層路盤',size:0.08},{t:'text',p:FG(120,69),s:'下層路盤',size:0.08},dimS(202,22,202,34,'t1'),dimS(218,34,218,54,'t2'),dimS(202,54,202,84,'t3')]}
+];
 const QUALITY = {'1m':1280,'2m':1600,'3m':2048};
 const PRESET = {
   koushu:['道路土工','河川土工','舗装工','排水構造物工','擁壁工','法面工','基礎工','コンクリート工','構造物撤去工','仮設工','区画線工','防護柵工','道路付属施設工','管路工','地盤改良工','植栽工','護岸工','橋梁下部工','付帯工'],
@@ -555,7 +687,8 @@ const KEY_OPTS=[['free','自由に書く'],['kouji','工事名（設定と連動
 function presetBlocks(t){
   const r=k=>({t:'row',key:k,label:(t.labels&&t.labels[k])||FIELD_LABEL[k],value:''});
   const bl=(t.top||[]).map(r);
-  if(t.table) bl.push({t:'table',head:t.table.slice(),rows:[{a:'',b:'',c:''}]});
+  if(t.sketch){ const f=typeof t.sketch==='string'&&FIGURES.find(x=>x.id===t.sketch); bl.push({t:'sketch',shapes:f?JSON.parse(JSON.stringify(f.shapes)):[]}); }
+  if(t.table) bl.push({t:'table',head:t.table.slice(),rows:t.diff?[{a:'幅',b:'',c:''},{a:'高さ',b:'',c:''}]:[{a:'',b:'',c:''}],diff:!!t.diff});
   else if(hasMain(t)) bl.push({t:'main',text:t.main,date:true});
   bl.push(...(t.bottom||[]).map(r));
   return bl;
@@ -619,7 +752,8 @@ function layout(b,W,H,d){
       return {t:'row',key:bl.key,label:bl.label||'',value:v,h};
     }
     if(bl.t==='main') return {t:'main',text:bl.text||'',date:bl.date!==false,h:rh*3.3};
-    if(bl.t==='table') return {t:'table',head:bl.head||['','',''],rows:bl.rows||[],h:rh*0.95*(1+(bl.rows||[]).length)};
+    if(bl.t==='table') return {t:'table',head:bl.head||['','',''],rows:bl.rows||[],diff:!!bl.diff,h:rh*0.95*(1+(bl.rows||[]).length)};
+    if(bl.t==='sketch') return {t:'sketch',shapes:bl.shapes||[],h:rh*4.6};
     return null;
   }).filter(Boolean);
   const h=fr*2+sh+items.reduce((s,i)=>s+i.h,0);
@@ -702,17 +836,23 @@ function drawBoard(ctx,b,W,H,d){
   };
   const drawTable=it=>{
     sep();
-    const cw=[0.4,0.3,0.3].map(v=>v*iw), th=rh*0.95;
+    const n=it.diff?4:3, ws=it.diff?[0.31,0.23,0.23,0.23]:[0.4,0.3,0.3], cw=ws.map(v=>v*iw), th=rh*0.95;
     ctx.lineWidth=thin;
-    [it.head, ...it.rows.map(r=>[r.a,r.b,r.c])].forEach((r,i)=>{
+    [it.head.slice(0,n), ...it.rows.map(r=>it.diff?[r.a,r.b,r.c,calcDiff(r.b,r.c)]:[r.a,r.b,r.c])].forEach((r,i)=>{
       if(i>0) ln(ix,yy,ix+iw,yy); else if(plain) ln(ix+rh*0.2,yy+th,ix+iw-rh*0.2,yy+th);
       let xx=ix;
       r.forEach((v,j)=>{ if(j>0&&!plain) ln(xx,yy,xx,yy+th);
-        if(i===0){ ctx.fillStyle=D.lab; spreadText(ctx,v,xx+cw[j]/2,yy+th/2,cw[j]*0.8,rh*0.36); }
-        else { ctx.fillStyle=D.fg; fitText(ctx,v,xx+cw[j]/2,yy+th/2,cw[j]*0.88,rh*0.44,'center',true); }
+        if(i===0){ ctx.fillStyle=D.lab; spreadText(ctx,v,xx+cw[j]/2,yy+th/2,cw[j]*0.82,rh*0.34); }
+        else { ctx.fillStyle=D.fg; fitText(ctx,v,xx+cw[j]/2,yy+th/2,cw[j]*0.88,rh*0.42,'center',true); }
         xx+=cw[j]; });
       yy+=th;
     });
+  };
+  const drawSketch=it=>{
+    sep();
+    const pd=rh*0.18;
+    drawShapes(ctx,it.shapes,ix+pd,yy+pd,iw-pd*2,it.h-pd*2,D.fg);
+    yy+=it.h;
   };
   const drawMain=it=>{
     sep();
@@ -725,7 +865,7 @@ function drawBoard(ctx,b,W,H,d){
     if(it.date) fitText(ctx,fmtDate(d||new Date()),ix+iw-rh*0.3,yy+it.h-rh*0.42,iw*0.6,rh*0.42,'right',true);
     yy+=it.h;
   };
-  g.items.forEach(it=> it.t==='row'?drawRow(it) : it.t==='table'?drawTable(it) : drawMain(it));
+  g.items.forEach(it=>{ it.y0=yy; it.t==='row'?drawRow(it) : it.t==='table'?drawTable(it) : it.t==='sketch'?drawSketch(it) : drawMain(it); });
   if(!plain){ ctx.lineWidth=thick; ctx.strokeStyle=D.line; ctx.strokeRect(ix+thick/2,iy+thick/2,iw-thick,ih-thick); }
   ctx.restore();
   return g;
@@ -782,20 +922,30 @@ function drawOverlay(){
   $('#dragHint').style.display=lastG?'':'none';
   updateGuide();
 }
-// 黒板のドラッグ移動
+// 黒板：指で動かす（ドラッグ）／タップで編集（絵の部分をタップすると絵の画面）
 (function(){
   let drag=null;
   overlay.addEventListener('pointerdown',e=>{
     if(!lastG) return; const r=overlay.getBoundingClientRect(); const k=overlay.width/r.width;
     const px=(e.clientX-r.left)*k, py=(e.clientY-r.top)*k;
-    if(px>=lastG.x&&px<=lastG.x+lastG.w&&py>=lastG.y&&py<=lastG.y+lastG.h){ drag={dx:px-lastG.x,dy:py-lastG.y,k,r}; overlay.setPointerCapture(e.pointerId); $('#dragHint').style.display='none'; }
+    if(px>=lastG.x&&px<=lastG.x+lastG.w&&py>=lastG.y&&py<=lastG.y+lastG.h){ drag={dx:px-lastG.x,dy:py-lastG.y,k,r,sx:e.clientX,sy:e.clientY,moved:false,py}; overlay.setPointerCapture(e.pointerId); }
   });
   overlay.addEventListener('pointermove',e=>{
-    if(!drag) return; const px=(e.clientX-drag.r.left)*drag.k, py=(e.clientY-drag.r.top)*drag.k;
+    if(!drag) return;
+    if(!drag.moved&&Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)<10) return;
+    drag.moved=true; $('#dragHint').style.display='none';
+    const px=(e.clientX-drag.r.left)*drag.k, py=(e.clientY-drag.r.top)*drag.k;
     board.x=clamp((px-drag.dx)/overlay.width,0,1); board.y=clamp((py-drag.dy)/overlay.height,0,1); drawOverlay();
   });
-  const end=()=>{ if(drag){ drag=null; saveBoard(); } };
-  overlay.addEventListener('pointerup',end); overlay.addEventListener('pointercancel',end);
+  const end=()=>{
+    if(!drag) return; const d=drag; drag=null;
+    if(d.moved){ saveBoard(); return; }
+    const it=lastG.items.find(i=>d.py>=i.y0&&d.py<i.y0+i.h);
+    if(it&&it.t==='sketch'){ openSketch(board.blocks.find(b=>b.t==='sketch')); return; }
+    openBoard('write');
+  };
+  overlay.addEventListener('pointerup',end);
+  overlay.addEventListener('pointercancel',()=>{ if(drag&&drag.moved) saveBoard(); drag=null; });
 })();
 
 function outSize(){ const L=QUALITY[prefs.quality]||1280; return {W:L,H:Math.round(L*3/4)}; } // 常に横長
@@ -901,6 +1051,7 @@ function stepSokuten(s,d){
 }
 $('#stVal').onclick=()=>openBoard('write');
 $('#swBtn').onclick=()=>openBoard('my');
+$('#dkBtn').onclick=()=>toggleDekigata();
 $('#rotMenu').onclick=()=>openMenu();
 
 /* ===================== 撮影画面の表示 ===================== */
@@ -912,6 +1063,7 @@ function renderShootInfo(){
   $('#stVal').textContent='測点 '+(v.sokuten||'未入力');
   $('#chGuide').classList.toggle('on',prefs.guide);
   $('#chGuide').parentElement.hidden = board.state!=='完成';
+  $('#dkBtn').classList.toggle('on',!!board.dkMode); $('#dkBtn').textContent=board.dkMode?'📐 出来形モード中（終了）':'📐 出来形モード';
   drawOverlay();
 }
 function findBefore(p){ // 同じ工種・種別・測点の着工前（最新）
@@ -970,15 +1122,18 @@ function renderBoardEditor(){
 /* --- 内容を書く --- */
 function renderWriteTab(){
   const box=$('#writeBox'); box.innerHTML='';
-  const dl={koushu:'dlKoushu',shubetsu:'dlShubetsu',saibetsu:'dlSaibetsu'};
   const ph={koushu:'例：舗装工',shubetsu:'例：表層工',saibetsu:'例：密粒度アスコン',sokuten:'例：No.12+5.0',kouji:'例：市道○○線 舗装補修工事',sekou:DEFAULT_SEKOU,hacchu:'例：○○市 建設部（改行で2行）'};
   const used=new Set();
+  // 入力欄＋「候補」ボタン（登録した文字をプルダウンのように選べる）
   const addInput=(label,value,onInput,opt={})=>{
     const id='w'+Math.random().toString(36).slice(2,8);
-    box.insertAdjacentHTML('beforeend',`<label class="f" for="${id}">${esc(label||'（名前なし）')}${opt.note?` <span class="muted" style="font-weight:400">${opt.note}</span>`:''}</label>`+
-      (opt.multi?`<textarea id="${id}" rows="2"></textarea>`:`<input type="text" id="${id}" ${opt.list?`list="${opt.list}"`:''}>`));
-    const el=$('#'+id); el.value=value||''; el.placeholder=opt.ph||''; if(opt.disabled){ el.disabled=true; }
+    box.insertAdjacentHTML('beforeend',`<label class="f" for="${id}">${esc(label||'（名前なし）')}${opt.note?` <span class="muted" style="font-weight:400">${opt.note}</span>`:''}</label>`);
+    const row=document.createElement('div'); row.className='inrow';
+    row.innerHTML=(opt.multi?`<textarea id="${id}" rows="2"></textarea>`:`<input type="text" id="${id}">`)+(opt.pick?`<button class="pk" type="button">候補<br>▼</button>`:'');
+    box.appendChild(row);
+    const el=row.querySelector('#'+id); el.value=value||''; el.placeholder=opt.ph||''; if(opt.disabled) el.disabled=true;
     el.oninput=()=>onInput(el.value);
+    if(opt.pick) row.querySelector('.pk').onclick=()=>openPicker(opt.pick,label,el.value,w=>{ el.value=w; onInput(w); });
   };
   if(board.none) box.insertAdjacentHTML('beforeend',`<p class="note">黒板は写りません。下の分類は写真に記録され、写管屋の振り分けに使われます。</p>`);
   (board.blocks||[]).forEach(bl=>{
@@ -986,21 +1141,33 @@ function renderWriteTab(){
     if(bl.t==='row'){
       const k=bl.key||'free'; used.add(k);
       if(k==='date') addInput(bl.label,'撮影した日が自動で入ります',()=>{},{disabled:true});
-      else if(k==='free') addInput(bl.label,bl.value,v=>{ bl.value=v; boardChanged(); },{multi:false});
+      else if(k==='free') addInput(bl.label,bl.value,v=>{ bl.value=v; boardChanged(); },{pick:'w_'+(bl.label||'free')});
       else if(k==='kouji'||k==='sekou'||k==='hacchu'){
         const p=projects.find(p=>p.id===curPj);
-        addInput(bl.label,k==='kouji'?p.name:k==='sekou'?(p.sekou||DEFAULT_SEKOU):(p.hacchu||''),v=>{ if(k==='kouji') p.name=v; else p[k]=v; saveProjects(); renderHeader(); boardChanged(); },{note:'（この工事の全写真で共通）',multi:k==='hacchu',ph:ph[k]});
-      } else addInput(bl.label,board.values[k],v=>{ board.values[k]=v; boardChanged(); },{list:dl[k],ph:ph[k]});
+        addInput(bl.label,k==='kouji'?p.name:k==='sekou'?(p.sekou||DEFAULT_SEKOU):(p.hacchu||''),v=>{ if(k==='kouji') p.name=v; else p[k]=v; saveProjects(); renderHeader(); boardChanged(); },{note:'（この工事の全写真で共通）',multi:k==='hacchu',ph:ph[k],pick:'p_'+k});
+      } else addInput(bl.label,board.values[k],v=>{ board.values[k]=v; boardChanged(); },{ph:ph[k],pick:k});
     } else if(bl.t==='main'){
-      addInput('中央の大きな文字（改行で2行）',bl.text,v=>{ bl.text=v; boardChanged(); },{multi:true,ph:'例：完 了'});
+      addInput('中央の大きな文字（改行で2行）',bl.text,v=>{ bl.text=v; boardChanged(); },{multi:true,ph:'例：完 了',pick:'main'});
+    } else if(bl.t==='sketch'){
+      box.insertAdjacentHTML('beforeend',`<label class="f">絵（略図）</label>`);
+      const cv=document.createElement('canvas'); cv.className='skprev'; cv.width=480; cv.height=200; cv.title='タップして絵を描く';
+      const ctx=cv.getContext('2d'), D=designOf(board); ctx.fillStyle=D.alpha?'#333':D.bg; ctx.fillRect(0,0,480,200);
+      if(bl.shapes&&bl.shapes.length) drawShapes(ctx,bl.shapes,8,8,464,184,D.fg);
+      else { ctx.fillStyle='rgba(160,160,160,.9)'; ctx.font=`700 22px ${FONT}`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('まだ絵がありません',240,100); }
+      cv.onclick=()=>openSketch(bl); box.appendChild(cv);
+      const btn=document.createElement('button'); btn.className='btn pri block'; btn.textContent='✏️ 絵を描く・部品を選ぶ'; btn.onclick=()=>openSketch(bl); box.appendChild(btn);
     } else if(bl.t==='table'){
-      box.insertAdjacentHTML('beforeend',`<label class="f">表（${bl.head.map(esc).join('・')}）</label>`);
+      const four=!!bl.diff;
+      box.insertAdjacentHTML('beforeend',`<label class="f">表（${bl.head.slice(0,four?4:3).map(esc).join('・')}）${four?' <span class="muted" style="font-weight:400">差は自動計算</span>':''}</label>`);
       bl.rows.forEach((r,i)=>{
-        const row=document.createElement('div'); row.className='trow';
-        row.innerHTML=`<input type="text" aria-label="${esc(bl.head[0])}"><input type="text" inputmode="decimal" aria-label="${esc(bl.head[1])}"><input type="text" inputmode="decimal" aria-label="${esc(bl.head[2])}"><button aria-label="行を削除">✕</button>`;
-        const ins=row.querySelectorAll('input'); ['a','b','c'].forEach((c,j)=>{ ins[j].value=r[c]||''; ins[j].placeholder=bl.head[j]; ins[j].oninput=()=>{ r[c]=ins[j].value; boardChanged(); }; });
-        row.querySelector('button').onclick=()=>{ if(bl.rows.length>1){ bl.rows.splice(i,1); boardChanged(true); } };
-        box.appendChild(row);
+        const row=document.createElement('div'); row.className=four?'trow4':'trow';
+        row.innerHTML=`<div class="inrow"><input type="text" aria-label="${esc(bl.head[0])}"><button class="pk" type="button" style="width:34px">▼</button></div><input type="text" inputmode="decimal" aria-label="${esc(bl.head[1])}"><input type="text" inputmode="decimal" aria-label="${esc(bl.head[2])}">${four?'<div class="df"></div>':''}<button class="tdelrow" aria-label="行を削除">✕</button>`;
+        const ins=row.querySelectorAll('input'), df=row.querySelector('.df');
+        const upd=()=>{ if(df) df.textContent=calcDiff(r.b,r.c)||'—'; };
+        ['a','b','c'].forEach((c,j)=>{ ins[j].value=r[c]||''; ins[j].placeholder=bl.head[j]; ins[j].oninput=()=>{ r[c]=ins[j].value; upd(); boardChanged(); }; });
+        row.querySelector('.pk').onclick=()=>openPicker('table_a',bl.head[0]||'項目',r.a,w=>{ r.a=w; ins[0].value=w; boardChanged(); });
+        row.querySelector('.tdelrow').onclick=()=>{ if(bl.rows.length>1){ bl.rows.splice(i,1); boardChanged(true); } };
+        upd(); box.appendChild(row);
       });
       const add=document.createElement('button'); add.className='btn block'; add.textContent='＋ 表の行を追加';
       add.onclick=()=>{ if(bl.rows.length<6){ bl.rows.push({a:'',b:'',c:''}); boardChanged(true); } else toast('表は6行までです'); };
@@ -1010,7 +1177,7 @@ function renderWriteTab(){
   const miss=['koushu','shubetsu','saibetsu','sokuten'].filter(k=>!used.has(k));
   if(miss.length){
     box.insertAdjacentHTML('beforeend',`<h3>写管屋の分類（黒板には出ません）</h3>`);
-    miss.forEach(k=>addInput(FIELD_LABEL[k]==='撮影箇所'?'測点・撮影箇所':FIELD_LABEL[k],board.values[k],v=>{ board.values[k]=v; boardChanged(); },{list:dl[k],ph:ph[k]}));
+    miss.forEach(k=>addInput(k==='sokuten'?'測点・撮影箇所':FIELD_LABEL[k],board.values[k],v=>{ board.values[k]=v; boardChanged(); },{ph:ph[k],pick:k}));
   }
   const ks=$('#bKubun'); ks.innerHTML=KUBUN.map(k=>`<option ${board.kubun===k?'selected':''}>${k}</option>`).join('');
   ks.onchange=()=>{ board.kubun=ks.value; boardChanged(); };
@@ -1024,11 +1191,12 @@ function renderItemsTab(){
   const bl=board.blocks;
   bl.forEach((b,i)=>{
     const el=document.createElement('div'); el.className='item';
-    const typ=b.t==='row'?'項目':b.t==='main'?'大きな文字欄':'表';
+    const typ={row:'項目',main:'大きな文字欄',table:'表',sketch:'絵'}[b.t];
     let body='';
     if(b.t==='row') body=`<input type="text" class="ilab" aria-label="項目名" placeholder="項目名"><select class="ikey" aria-label="入る内容">${KEY_OPTS.map(([k,n])=>`<option value="${k}">${n}</option>`).join('')}</select>`;
     else if(b.t==='main') body=`<label class="ichk"><input type="checkbox" class="idate"> 右下に撮影日を入れる</label>`;
-    else body=`<div class="ihead"><input type="text" aria-label="表の見出し1"><input type="text" aria-label="表の見出し2"><input type="text" aria-label="表の見出し3"></div>`;
+    else if(b.t==='sketch') body=`<button class="btn" type="button">✏️ 絵を描く</button>`;
+    else body=`<div class="ihead"><input type="text" aria-label="見出し1"><input type="text" aria-label="見出し2"><input type="text" aria-label="見出し3"></div><label class="ichk"><input type="checkbox" class="idiff"> 「差」の列を付けて自動計算</label>`;
     el.innerHTML=`<div class="ityp">${typ}</div><div class="ibody">${body}</div><div class="ibtns"><button class="iup" aria-label="上へ">▲</button><button class="idn" aria-label="下へ">▼</button><button class="idel" aria-label="削除">✕</button></div>`;
     if(b.t==='row'){
       const lab=el.querySelector('.ilab'), key=el.querySelector('.ikey');
@@ -1037,8 +1205,11 @@ function renderItemsTab(){
       key.onchange=()=>{ const old=b.key; b.key=key.value; const n=FIELD_LABEL[b.key]; if(n&&(!b.label||b.label===FIELD_LABEL[old])) { b.label=n; lab.value=n; } boardChanged(); };
     } else if(b.t==='main'){
       const c=el.querySelector('.idate'); c.checked=b.date!==false; c.onchange=()=>{ b.date=c.checked; boardChanged(); };
+    } else if(b.t==='sketch'){
+      el.querySelector('.ibody .btn').onclick=()=>openSketch(b);
     } else {
       el.querySelectorAll('.ihead input').forEach((inp,j)=>{ inp.value=b.head[j]||''; inp.oninput=()=>{ b.head[j]=inp.value; boardChanged(); }; });
+      const c=el.querySelector('.idiff'); c.checked=!!b.diff; c.onchange=()=>{ b.diff=c.checked; if(b.diff&&!b.head[3]) b.head[3]='差'; boardChanged(); };
     }
     el.querySelector('.iup').disabled=i===0; el.querySelector('.idn').disabled=i===bl.length-1;
     el.querySelector('.iup').onclick=()=>{ [bl[i-1],bl[i]]=[bl[i],bl[i-1]]; markCustom(); boardChanged(true); };
@@ -1048,7 +1219,8 @@ function renderItemsTab(){
   });
   $('#addRow').onclick=()=>{ if(bl.length>=12){ toast('項目は12個までです'); return; } bl.push({t:'row',key:'free',label:'項目',value:''}); markCustom(); boardChanged(true); };
   $('#addMain').onclick=()=>{ if(bl.some(b=>b.t==='main')){ toast('大きな文字欄はすでにあります'); return; } bl.push({t:'main',text:'',date:true}); markCustom(); boardChanged(true); };
-  $('#addTable').onclick=()=>{ if(bl.some(b=>b.t==='table')){ toast('表はすでにあります'); return; } bl.push({t:'table',head:['測定項目','設計値','実測値'],rows:[{a:'',b:'',c:''}]}); markCustom(); boardChanged(true); };
+  $('#addTable').onclick=()=>{ if(bl.some(b=>b.t==='table')){ toast('表はすでにあります'); return; } bl.push({t:'table',head:['測定項目','設計値','実測値','差'],rows:[{a:'',b:'',c:''}],diff:true}); markCustom(); boardChanged(true); };
+  $('#addSketch').onclick=()=>{ if(bl.some(b=>b.t==='sketch')){ toast('絵の欄はすでにあります'); return; } const t=bl.findIndex(b=>b.t==='table'); const nb={t:'sketch',shapes:[]}; if(t>=0) bl.splice(t,0,nb); else bl.push(nb); markCustom(); boardChanged(true); };
   $('#optNone').checked=!!board.none; $('#optNone').onchange=e=>{ board.none=e.target.checked; boardChanged(); };
   $('#optSmall').checked=!!board.small; $('#optSmall').onchange=e=>{ board.small=e.target.checked; boardChanged(); };
 }
@@ -1074,6 +1246,138 @@ function renderMyTab(){
     if(ex) Object.assign(ex,data); else myBoards.unshift({id:uid(),...data});
     saveMyBoards(); board.pname=name; boardChanged(true); toast(`My黒板「${name}」を保存しました`);
   };
+}
+/* ===================== 絵を描く画面 ===================== */
+const SK={block:null,shapes:[],undo:[],tool:'pen',cur:null};
+function openSketch(block){
+  if(!block) return;
+  SK.block=block; SK.shapes=JSON.parse(JSON.stringify(block.shapes||[])); SK.undo=[]; SK.cur=null;
+  openModal('mSketch'); setSkTool(SK.tool); requestAnimationFrame(fitSketch);
+}
+function fitSketch(){
+  const wrap=$('#skWrap').getBoundingClientRect(), cv=$('#skCanvas');
+  let w=wrap.width, h=w/SK_AR; if(h>wrap.height){ h=wrap.height; w=h*SK_AR; }
+  cv.style.width=w+'px'; cv.style.height=h+'px';
+  const dpr=Math.min(2,window.devicePixelRatio||1); cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr);
+  drawSketchEditor();
+}
+function drawSketchEditor(){
+  const cv=$('#skCanvas'), ctx=cv.getContext('2d'), D=designOf(board);
+  ctx.fillStyle=D.alpha?'#333':D.bg; ctx.fillRect(0,0,cv.width,cv.height);
+  ctx.strokeStyle='rgba(128,128,128,.25)'; ctx.lineWidth=1;
+  for(let i=1;i<12;i++){ const x=cv.width*i/12; ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,cv.height); ctx.stroke(); }
+  for(let i=1;i<5;i++){ const y=cv.height*i/5; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(cv.width,y); ctx.stroke(); }
+  drawShapes(ctx,SK.cur?[...SK.shapes,SK.cur]:SK.shapes,0,0,cv.width,cv.height,D.fg);
+  if(!SK.shapes.length&&!SK.cur){ ctx.fillStyle='rgba(128,128,128,.8)'; ctx.font=`700 ${cv.height*0.07}px ${FONT}`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('指で描けます。「部品」から製品の絵も選べます',cv.width/2,cv.height/2); }
+}
+function setSkTool(t){ SK.tool=t; $$('#skTools [data-tool]').forEach(b=>b.classList.toggle('on',b.dataset.tool===t)); $('#skText').hidden=!(t==='text'||t==='dim'); $('#skText').placeholder=t==='dim'?'寸法の文字（例：B=300）を入れてから線を引く（空でも可）':'書く文字（例：B=300）→ 置きたい場所をタップ'; if(t==='text') setTimeout(()=>$('#skText').focus(),50); }
+function skPush(){ SK.undo.push(JSON.stringify(SK.shapes)); if(SK.undo.length>50) SK.undo.shift(); }
+function skPos(e){ const r=$('#skCanvas').getBoundingClientRect(); return [clamp((e.clientX-r.left)/r.width,0,1), clamp((e.clientY-r.top)/r.height,0,1)]; }
+function skHit(p){ // いちばん近い図形を探す（消しゴム用）
+  const d2=(a,b)=>((a[0]-b[0])*SK_AR)**2+(a[1]-b[1])**2;
+  const seg=(p,a,b)=>{ const ax=a[0]*SK_AR,ay=a[1],bx=b[0]*SK_AR,by=b[1],px=p[0]*SK_AR,py=p[1]; const l=(bx-ax)**2+(by-ay)**2; let t=l?((px-ax)*(bx-ax)+(py-ay)*(by-ay))/l:0; t=clamp(t,0,1); return (px-ax-t*(bx-ax))**2+(py-ay-t*(by-ay))**2; };
+  let best=-1, bd=0.06**2;
+  SK.shapes.forEach((s,i)=>{
+    let d=Infinity;
+    if(s.t==='path') for(let k=1;k<s.pts.length;k++) d=Math.min(d,seg(p,s.pts[k-1],s.pts[k]));
+    if(s.t==='path'&&s.closed&&s.pts.length>2) d=Math.min(d,seg(p,s.pts[s.pts.length-1],s.pts[0]));
+    if(s.t==='line'||s.t==='dim') d=seg(p,s.a,s.b);
+    if(s.t==='rect'){ const a=s.a, b=s.b, c=[a[0],b[1]], e=[b[0],a[1]]; d=Math.min(seg(p,a,c),seg(p,c,b),seg(p,b,e),seg(p,e,a)); }
+    if(s.t==='circle') d=(Math.sqrt(d2(p,s.c))-s.r)**2;
+    if(s.t==='text') d=d2(p,s.p);
+    if(d<bd){ bd=d; best=i; }
+  });
+  return best;
+}
+(function(){
+  const cv=$('#skCanvas'); let down=null;
+  cv.addEventListener('pointerdown',e=>{
+    e.preventDefault(); cv.setPointerCapture(e.pointerId); const p=skPos(e); down=p;
+    const t=SK.tool;
+    if(t==='erase'){ const i=skHit(p); if(i>=0){ skPush(); SK.shapes.splice(i,1); drawSketchEditor(); } down=null; return; }
+    if(t==='text'){ const s=$('#skText').value.trim(); if(!s){ toast('上の欄に文字を入れてから、置きたい場所をタップしてください'); down=null; return; } skPush(); SK.shapes.push({t:'text',p,s,size:0.1}); drawSketchEditor(); down=null; return; }
+    if(t==='pen') SK.cur={t:'path',pts:[p]};
+    else if(t==='circle') SK.cur={t:'circle',c:p,r:0};
+    else SK.cur={t,a:p,b:p};
+    drawSketchEditor();
+  });
+  cv.addEventListener('pointermove',e=>{
+    if(!down||!SK.cur) return; const p=skPos(e), c=SK.cur;
+    if(c.t==='path'){ const l=c.pts[c.pts.length-1]; if(Math.hypot((p[0]-l[0])*SK_AR,p[1]-l[1])>0.006) c.pts.push(p); }
+    else if(c.t==='circle') c.r=Math.hypot((p[0]-c.c[0])*SK_AR,p[1]-c.c[1]);
+    else { let b=p; if(c.t!=='rect'){ const dx=Math.abs(p[0]-c.a[0])*SK_AR, dy=Math.abs(p[1]-c.a[1]); if(dy<dx*0.12) b=[p[0],c.a[1]]; else if(dx<dy*0.12) b=[c.a[0],p[1]]; } c.b=b; } // 水平・垂直に吸着
+    drawSketchEditor();
+  });
+  const end=()=>{
+    if(!down) return; down=null; const c=SK.cur; SK.cur=null;
+    if(c){ const ok = c.t==='path'?c.pts.length>1 : c.t==='circle'?c.r>0.01 : Math.hypot((c.b[0]-c.a[0])*SK_AR,c.b[1]-c.a[1])>0.02;
+      if(ok){ skPush(); if(c.t==='dim'){ const lab=$('#skText').value.trim(); if(lab) c.s=lab; } SK.shapes.push(c); } }
+    drawSketchEditor();
+  };
+  cv.addEventListener('pointerup',end); cv.addEventListener('pointercancel',end);
+  $$('#skTools [data-tool]').forEach(b=>b.onclick=()=>setSkTool(b.dataset.tool));
+  $('#skUndo').onclick=()=>{ if(SK.undo.length){ SK.shapes=JSON.parse(SK.undo.pop()); drawSketchEditor(); } };
+  $('#skClear').onclick=()=>{ if(!SK.shapes.length) return; skPush(); SK.shapes=[]; drawSketchEditor(); };
+  $('#skParts').onclick=()=>{ renderParts(); openModal('mParts'); };
+  $('#skDone').onclick=()=>{ SK.block.shapes=SK.shapes; closeModal('mSketch'); boardChanged(true); };
+  $('#skCancel').onclick=()=>closeModal('mSketch');
+  window.addEventListener('resize',()=>{ if($('#mSketch').classList.contains('on')) fitSketch(); });
+})();
+function renderParts(){
+  const g=$('#partsGrid'); g.innerHTML='';
+  FIGURES.forEach(f=>{
+    const el=document.createElement('button'); el.className='tpl';
+    el.innerHTML=`<canvas width="240" height="100"></canvas><b>${f.name}</b>`;
+    const cv=el.querySelector('canvas'), ctx=cv.getContext('2d'), D=designOf(board);
+    ctx.fillStyle=D.alpha?'#333':D.bg; ctx.fillRect(0,0,240,100); drawShapes(ctx,f.shapes,4,4,232,92,D.fg);
+    el.onclick=()=>{ skPush(); SK.shapes=JSON.parse(JSON.stringify(f.shapes)); closeModal('mParts'); drawSketchEditor(); toast(`「${f.name}」を入れました。寸法の数字は「文字」で書き足せます`,2600); };
+    g.appendChild(el);
+  });
+}
+
+/* ===================== 文字の候補リスト（プルダウン） ===================== */
+const DEFAULT_WORDS={
+  koushu:PRESET.koushu, shubetsu:PRESET.shubetsu, saibetsu:PRESET.saibetsu,
+  main:['完 了','着工前','施工中','施工前','施工後','KY活動','段階確認','立 会'],
+  table_a:['幅','高さ','厚さ','延長','深さ','基準高','法長','B','H','W','t','L','D'],
+  w_材料名:['U字溝','L型擁壁','L形側溝','歩車道境界ブロック','ヒューム管','集水桝','ボックスカルバート','グレーチング','再生砕石','アスファルト合材','生コンクリート'],
+  w_立会者:['監督員','現場代理人','主任技術者']
+};
+let wordLists=LS.get('wordLists',{});
+const wordsOf=key=>wordLists[key]||(DEFAULT_WORDS[key]?DEFAULT_WORDS[key].slice():[]);
+function saveWords(key,list){ wordLists[key]=list; LS.set('wordLists',wordLists); }
+const PICK={key:'',onPick:null,cur:''};
+function openPicker(key,title,cur,onPick){ PICK.key=key; PICK.onPick=onPick; PICK.cur=cur||''; $('#pkTitle').textContent=`「${title}」の候補`; $('#pkNew').value=''; renderPicker(); openModal('mPick'); }
+function renderPicker(){
+  const box=$('#pkList'); box.innerHTML='';
+  const list=wordsOf(PICK.key);
+  if(!list.length) box.innerHTML='<p class="muted">まだ候補がありません。下の欄から登録できます。</p>';
+  list.forEach((w,i)=>{
+    const row=document.createElement('div'); row.className='pkrow';
+    row.innerHTML=`<button class="pkw"></button><button class="pkdel" aria-label="候補から削除">✕</button>`;
+    row.querySelector('.pkw').textContent=w;
+    row.querySelector('.pkw').onclick=()=>{ PICK.onPick(w); closeModal('mPick'); };
+    row.querySelector('.pkdel').onclick=()=>{ const l=wordsOf(PICK.key); l.splice(i,1); saveWords(PICK.key,l); renderPicker(); };
+    box.appendChild(row);
+  });
+  $('#pkCurBtn').hidden=!PICK.cur||list.includes(PICK.cur);
+  $('#pkCurBtn').textContent=`「${PICK.cur}」を候補に登録`;
+}
+$('#pkAdd').onclick=()=>{ const v=$('#pkNew').value.trim(); if(!v) return; const l=wordsOf(PICK.key); if(!l.includes(v)) l.unshift(v); saveWords(PICK.key,l); $('#pkNew').value=''; renderPicker(); };
+$('#pkCurBtn').onclick=()=>{ const l=wordsOf(PICK.key); if(!l.includes(PICK.cur)) l.unshift(PICK.cur); saveWords(PICK.key,l); renderPicker(); };
+
+/* ===================== 出来形モード ===================== */
+function toggleDekigata(){
+  if(board.dkMode){
+    const prev=LS.get('boardBeforeDk_'+curPj,null);
+    if(prev){ const keepV=board.values; board=Object.assign(defaultBoard(),prev); board.values=keepV; }
+    board.dkMode=false; toast('出来形モードを終了しました');
+  } else {
+    LS.set('boardBeforeDk_'+curPj,JSON.parse(JSON.stringify(board)));
+    applyPattern(presetOf('dekigata')); board.dkMode=true; board.kubun='出来形管理写真';
+    toast('出来形モード：黒板の絵や表をタップすると編集できます',2800);
+  }
+  saveBoard(); renderShootInfo();
 }
 function fillDatalists(){
   ['koushu','shubetsu','saibetsu'].forEach(k=>{
@@ -1279,7 +1583,7 @@ function buildPhotoXml(list){
   let s=`<?xml version="1.0" encoding="Shift_JIS"?>\r\n<!DOCTYPE photodata SYSTEM "PHOTO${v}.DTD">\r\n<photodata DTD_version="${v}">\r\n`;
   s+=`<基礎情報>\r\n<写真フォルダ名>PHOTO/PIC</写真フォルダ名>\r\n<適用要領基準>${x(prefs.kijun)}</適用要領基準>\r\n</基礎情報>\r\n`;
   list.forEach((p,i)=>{
-    const kanri=p.rows&&p.rows.length?p.rows.filter(r=>r.a||r.b||r.c).map(r=>`${r.a} ${p.tableHead[1]}${r.b} ${p.tableHead[2]}${r.c}`).join(' / '):'';
+    const kanri=p.rows&&p.rows.length?p.rows.filter(r=>r.a||r.b||r.c).map(r=>{ const df=p.tableHead[3]?calcDiff(r.b,r.c):''; return `${r.a} ${p.tableHead[1]}${r.b} ${p.tableHead[2]}${r.c}`+(df?` ${p.tableHead[3]}${df}`:''); }).join(' / '):'';
     s+=`<写真情報>\r\n<写真ファイル情報>\r\n<シリアル番号>${i+1}</シリアル番号>\r\n<写真ファイル名>${p._file}</写真ファイル名>\r\n<写真ファイル日本語名>${x(p.title)}</写真ファイル日本語名>\r\n<メディア番号>1</メディア番号>\r\n</写真ファイル情報>\r\n`;
     s+=`<撮影工種区分>\r\n<写真-大分類>${x(p.daibunrui)}</写真-大分類>\r\n<写真区分>${x(p.kubun)}</写真区分>\r\n<工種>${x(p.koushu)}</工種>\r\n<種別>${x(p.shubetsu)}</種別>\r\n<細別>${x(p.saibetsu)}</細別>\r\n<写真タイトル>${x(p.title)}</写真タイトル>\r\n</撮影工種区分>\r\n`;
     s+=`<撮影情報>\r\n<撮影箇所>${x(p.sokuten)}</撮影箇所>\r\n<撮影年月日>${isoDate(new Date(p.ts))}</撮影年月日>\r\n</撮影情報>\r\n`;
@@ -1399,6 +1703,8 @@ document.addEventListener('visibilitychange',()=>{ if(document.hidden) stopCam()
   show('shoot');
   if(!LS.get('tip1',false)){ LS.set('tip1',true); setTimeout(()=>toast('左の黒板ボタンで、工事名や項目を入力・変更できます',3500),800); }
   if(navigator.storage?.persist) navigator.storage.persist().catch(()=>{});
+  // ホーム画面に追加したとき、電波がなくても開けるようにする
+  if('serviceWorker' in navigator && location.protocol==='https:' && window.top===window.self) navigator.serviceWorker.register('sw.js').catch(()=>{});
 })();
 window.KP={composePhoto,storePhoto,buildPhotoXml,sjis,makeZip,photos:()=>photos,board:()=>board};
 </script>
