@@ -63,17 +63,11 @@ body.shooting header{display:none}
 .sbar>*{pointer-events:auto}
 .stop{top:0;padding-top:10px}
 .sbottom{bottom:0;padding-bottom:14px}
-.ctop{display:flex;gap:8px;align-items:center;min-width:0}
-.ctop .boardbtn{flex:1;min-width:0}
-.iconbtn{flex:none;width:50px;height:50px;border-radius:50%;border:0;background:rgba(10,14,12,.6);color:#fff;font-size:24px;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
-.boardbtn{display:flex;align-items:center;gap:10px;width:100%;border:0;border-radius:14px;background:rgba(10,14,12,.6);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);color:#fff;padding:8px 10px 8px 12px;text-align:left}
-.boardbtn .k{font-size:12px;color:#9fd3b6}
-.boardbtn .s{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.boardbtn .e{margin-left:auto;background:#3fa775;color:#06130c;border-radius:10px;padding:6px 12px;font-weight:700;font-size:14px;white-space:nowrap}
+.lbtn{display:flex;flex-direction:column;align-items:center;gap:4px;width:76px;border:0;background:none;padding:0;color:#fff;font-size:11px;font-weight:700;line-height:1.25;text-align:center;text-shadow:0 1px 3px #000}
+.lbtn .ic{width:54px;height:54px;border-radius:50%;background:rgba(10,14,12,.62);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border:2px solid rgba(255,255,255,.28);display:flex;align-items:center;justify-content:center;font-size:24px;text-shadow:none}
+.lbtn.on .ic{background:#3fa775;border-color:#3fa775;color:#06130c}
+.lbtn:active .ic{transform:scale(.94)}
 .row{display:flex;gap:8px;align-items:center}
-.chips{display:flex;gap:6px;flex-wrap:wrap}
-.chip{border:1.5px solid rgba(255,255,255,.35);background:rgba(10,14,12,.55);color:#e6ece8;border-radius:22px;padding:6px 12px;font-size:14px;min-height:38px}
-.chip.on{background:#3fa775;border-color:#3fa775;color:#06130c;font-weight:700}
 .shutterrow{display:flex;align-items:center;justify-content:space-between;padding:0 8px}
 .last{width:56px;height:56px;border-radius:12px;background:rgba(10,14,12,.6) center/cover no-repeat;border:2px solid rgba(255,255,255,.6)}
 .shutter{width:80px;height:80px;border-radius:50%;border:5px solid #fff;background:rgba(255,255,255,.92);box-shadow:0 0 0 3px #3fa775 inset,0 2px 10px rgba(0,0,0,.4);touch-action:none;user-select:none;-webkit-user-select:none}
@@ -81,16 +75,11 @@ body.shooting header{display:none}
 .shutter.burst{background:#ff6b5b}
 .count{width:64px;white-space:nowrap;text-align:center;font-size:12px;color:#fff;text-shadow:0 1px 3px #000}
 .count b{display:block;font-size:22px}
-/* 撮影は横向き専用：左に黒板・測点、右にシャッター */
-.sbar{top:0;bottom:0;width:clamp(150px,21vw,250px);justify-content:center;padding-block:8px}
-.stop{left:0;right:auto;padding-left:max(10px,env(safe-area-inset-left,0px));padding-right:8px;justify-content:flex-start;padding-top:10px}
-.sbottom{right:0;left:auto;padding-right:max(10px,env(safe-area-inset-right,0px));padding-left:8px}
-.ctop{flex-direction:column;align-items:stretch}
-.ctop .iconbtn{align-self:flex-start}
-.boardbtn .e{display:none}
-.shutterrow{flex-direction:column;gap:10px;padding:0}
-.stval.sw2{font-size:14px;background:rgba(63,167,117,.85);color:#06130c}
-.stval{border:0;border-radius:12px;background:rgba(10,14,12,.6);color:#fff;font-weight:700;font-size:16px;padding:8px 10px;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 撮影は横向き専用：左にメニュー・絵/表の切替（必要なものだけ）、右にシャッター */
+.sbar{top:0;bottom:0;justify-content:center;padding-block:8px}
+.stop{left:0;right:auto;width:auto;align-items:center;justify-content:flex-start;gap:18px;padding-top:14px;padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:8px}
+.sbottom{right:0;left:auto;width:auto;align-items:center;padding-right:max(12px,env(safe-area-inset-right,0px));padding-left:8px}
+.shutterrow{flex-direction:column;gap:12px;padding:0}
 .rotate{display:none;position:absolute;inset:0;z-index:10;background:#111;color:#fff;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:24px}
 .rotate .ph{font-size:64px;animation:rot 2s ease-in-out infinite}
 .rotate b{font-size:20px}
@@ -303,17 +292,10 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
       </div>
       <div class="rotate" id="rotateMsg"><div class="ph">📱</div><b>スマホを横向きにしてください</b><small>撮影は横向き専用です。<br>横にしても画面が回らないときは、画面の縦向きロックを解除してください。</small><button class="btn" id="rotMenu" style="margin-top:8px;background:#26302b;color:#fff;border-color:#3c4842">☰ メニューを開く</button></div>
       <div class="sbar stop">
-        <div class="ctop">
-          <button class="iconbtn" id="menuBtn" aria-label="メニュー">☰</button>
-          <button class="boardbtn" id="boardBtn">
-            <div style="min-width:0"><div class="k" id="bbKind">黒板：標準</div><div class="s" id="bbSum">工種を入力してください</div></div>
-            <span class="e">黒板を編集</span>
-          </button>
-        </div>
-        <button class="stval" id="stVal">測点 未入力</button>
-        <button class="stval sw2" id="swBtn">📋 黒板を切替</button>
-        <button class="dkchip" id="dkBtn">📐 出来形モード</button>
-        <div class="chips"><button class="chip" id="chGuide">着工前を重ねる</button></div>
+        <button class="lbtn" id="menuBtn" aria-label="メニュー"><span class="ic">☰</span>メニュー</button>
+        <button class="lbtn" id="tgSketch" aria-pressed="true"><span class="ic">✏️</span>絵</button>
+        <button class="lbtn" id="tgTable" aria-pressed="true"><span class="ic">▦</span>表</button>
+        <button class="lbtn" id="tgGuide" aria-pressed="false"><span class="ic">◐</span>着工前を重ねる</button>
       </div>
       <div class="sbar sbottom">
         <div class="shutterrow">
@@ -450,6 +432,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
         <div class="edselname" id="edSelName"></div>
         <button class="edb hi" id="edPick">候補から選ぶ ▼</button>
         <button class="edb" id="edDraw">✏️ 絵を描く</button>
+        <button class="edb" id="edHide">隠す（中身は残す）</button>
         <button class="edb" id="edRowAdd">表に行を足す</button>
         <button class="edb" id="edRowDel">表の行を減らす</button>
         <button class="edb" id="edDiff">差の列</button>
@@ -605,28 +588,28 @@ const KUBUN = ['着手前及び完成写真','施工状況写真','安全管理�
 const FIELD_LABEL = {kouji:'工事名',koushu:'工種',shubetsu:'種別',saibetsu:'細別',sokuten:'撮影箇所',date:'撮影日',sekou:'施工者',hacchu:'発注者',zairyo:'材料名',kikaku:'規格',suryo:'数量',kakunin:'確認項目',tachiai:'立会者'};
 // top: 上の行 / main: 中央に大きく書く文字（日付は右下） / table: 中央を表にする / bottom: 下の行
 const TEMPLATES = [
-  {id:'std',      name:'標準',      kubun:'施工状況写真',     top:['kouji','koushu','shubetsu','sokuten'], main:'', bottom:['hacchu','sekou'], desc:'いちばん基本の黒板'},
-  {id:'before',   name:'着工前',    kubun:'着手前及び完成写真', state:'着工前', top:['kouji','koushu','sokuten'], main:'着工前', bottom:['hacchu','sekou'], desc:'工事を始める前'},
-  {id:'after',    name:'完成',      kubun:'着手前及び完成写真', state:'完成',   top:['kouji','koushu','sokuten'], main:'完 了', bottom:['hacchu','sekou'], desc:'着工前と同じ位置で'},
-  {id:'joukyou',  name:'施工状況',  kubun:'施工状況写真',     top:['kouji','koushu','shubetsu','sokuten'], main:'施工中', bottom:['sekou'], desc:'作業中のようす'},
-  {id:'dekigata', name:'出来形管理',kubun:'出来形管理写真',   top:['kouji','koushu','shubetsu','sokuten'], sketch:true, table:['測定項目','設計値','実測値','差'], diff:true, bottom:['sekou'], desc:'略図＋設計・実測・差'},
-  {id:'dekigata2',name:'出来形（表のみ）',kubun:'出来形管理写真', top:['kouji','koushu','shubetsu','sokuten'], table:['測定項目','設計値','実測値','差'], diff:true, bottom:['sekou'], desc:'設計・実測・差の表'},
-  {id:'kenshu',   name:'製品検収',  kubun:'使用材料写真',     top:['kouji','zairyo','kikaku'], sketch:'u', table:['測定項目','規格値','実測値','差'], diff:true, bottom:['sekou'], desc:'製品の絵＋寸法'},
-  {id:'hinshitsu',name:'品質管理',  kubun:'品質管理写真',     top:['kouji','koushu','shubetsu','sokuten'], table:['試験項目','規格値','測定値'], bottom:['sekou'], desc:'試験・温度・密度など'},
-  {id:'dankai',   name:'段階確認',  kubun:'施工状況写真',     top:['kouji','koushu','sokuten','kakunin'], main:'段階確認', bottom:['tachiai','sekou'], desc:'監督員の段階確認'},
-  {id:'tachiai',  name:'立会',      kubun:'施工状況写真',     top:['kouji','koushu','sokuten'], main:'立 会', bottom:['tachiai','sekou'], desc:'立会・検査'},
-  {id:'zairyo',   name:'材料検収',  kubun:'使用材料写真',     top:['kouji','zairyo','kikaku','suryo'], main:'材料検収', bottom:['tachiai','sekou'], desc:'材料の搬入・検収'},
-  {id:'anzen',    name:'安全管理',  kubun:'安全管理写真',     top:['kouji'], main:'KY活動', bottom:['sekou'], desc:'KY・保安施設など'},
-  {id:'saigai',   name:'災害',      kubun:'災害写真',         top:['kouji','sokuten'], main:'被災状況', bottom:['hacchu','sekou'], desc:'被災箇所の記録'},
-  {id:'jiko',     name:'事故',      kubun:'事故写真',         top:['kouji','sokuten'], main:'事故状況', bottom:['hacchu','sekou'], desc:'事故の記録'},
-  {id:'v_std',    name:'縦長 標準',  kubun:'施工状況写真',     narrow:true, top:['kouji','koushu','sokuten'], main:'', bottom:['hacchu','sekou'], desc:'縦長の基本形'},
-  {id:'v_kanryo', name:'縦長 完了',  kubun:'着手前及び完成写真', state:'完成', narrow:true, top:['kouji','sokuten'], main:'完 了', bottom:['sekou'], desc:'縦長・項目少なめ'},
-  {id:'v_dekigata',name:'縦長 出来形',kubun:'出来形管理写真',   narrow:true, top:['kouji','koushu','sokuten'], sketch:true, table:['測定項目','設計値','実測値','差'], diff:true, bottom:['sekou'], desc:'縦長・絵と表'},
-  {id:'v_kenshu', name:'縦長 製品検収',kubun:'使用材料写真',    narrow:true, top:['kouji','zairyo'], sketch:'u', table:['測定項目','規格値','実測値','差'], diff:true, bottom:['sekou'], desc:'縦長・製品の絵'},
-  {id:'kanni',    name:'簡易',      kubun:'施工状況写真',     top:['kouji','sokuten','date'], bottom:['sekou'], desc:'4項目だけのシンプル'},
-  {id:'mame',     name:'豆黒板',    kubun:'施工状況写真',     top:['koushu','sokuten'], bottom:[], small:true, desc:'小さく目立たない'},
-  {id:'free',     name:'自由記入',  kubun:'その他',           top:['kouji','koushu','sokuten'], main:'', bottom:['sekou'], desc:'中央に何でも書ける'},
-  {id:'none',     name:'黒板なし',  kubun:'施工状況写真',     top:[], bottom:[], none:true, desc:'情報だけ記録'}
+  {id:'std',      name:'基本（記事欄あり）',kubun:'施工状況写真',     top:['kouji','koushu','shubetsu','sokuten'], main:'', bottom:['hacchu','sekou'], desc:'いちばん基本の黒板'},
+  {id:'before',   name:'着工前',kubun:'着手前及び完成写真', state:'着工前', top:['kouji','koushu','sokuten'], main:'着工前', bottom:['hacchu','sekou'], desc:'工事を始める前'},
+  {id:'after',    name:'完成・完了',kubun:'着手前及び完成写真', state:'完成',   top:['kouji','koushu','sokuten'], main:'完 了', bottom:['hacchu','sekou'], desc:'着工前と同じ位置で'},
+  {id:'joukyou',  name:'施工中',kubun:'施工状況写真',     top:['kouji','koushu','shubetsu','sokuten'], main:'施工中', bottom:['sekou'], desc:'作業中のようす'},
+  {id:'dekigata', name:'出来形（絵＋寸法表）',kubun:'出来形管理写真',   top:['kouji','koushu','shubetsu','sokuten'], sketch:true, table:['測定項目','設計値','実測値','差'], diff:true, bottom:['sekou'], desc:'略図＋設計・実測・差'},
+  {id:'dekigata2',name:'出来形（寸法表のみ）',kubun:'出来形管理写真', top:['kouji','koushu','shubetsu','sokuten'], table:['測定項目','設計値','実測値','差'], diff:true, bottom:['sekou'], desc:'設計・実測・差の表'},
+  {id:'kenshu',   name:'製品検収（絵＋寸法表）',kubun:'使用材料写真',     top:['kouji','zairyo','kikaku'], sketch:'u', table:['測定項目','規格値','実測値','差'], diff:true, bottom:['sekou'], desc:'製品の絵＋寸法'},
+  {id:'hinshitsu',name:'品質管理（試験表）',kubun:'品質管理写真',     top:['kouji','koushu','shubetsu','sokuten'], table:['試験項目','規格値','測定値'], bottom:['sekou'], desc:'試験・温度・密度など'},
+  {id:'dankai',   name:'段階確認（立会者欄）',kubun:'施工状況写真',     top:['kouji','koushu','sokuten','kakunin'], main:'段階確認', bottom:['tachiai','sekou'], desc:'監督員の段階確認'},
+  {id:'tachiai',  name:'立会（立会者欄）',kubun:'施工状況写真',     top:['kouji','koushu','sokuten'], main:'立 会', bottom:['tachiai','sekou'], desc:'立会・検査'},
+  {id:'zairyo',   name:'材料検収（材料・規格・数量）',kubun:'使用材料写真',     top:['kouji','zairyo','kikaku','suryo'], main:'材料検収', bottom:['tachiai','sekou'], desc:'材料の搬入・検収'},
+  {id:'anzen',    name:'安全管理（KY）',kubun:'安全管理写真',     top:['kouji'], main:'KY活動', bottom:['sekou'], desc:'KY・保安施設など'},
+  {id:'saigai',   name:'災害（被災状況）',kubun:'災害写真',         top:['kouji','sokuten'], main:'被災状況', bottom:['hacchu','sekou'], desc:'被災箇所の記録'},
+  {id:'jiko',     name:'事故（事故状況）',kubun:'事故写真',         top:['kouji','sokuten'], main:'事故状況', bottom:['hacchu','sekou'], desc:'事故の記録'},
+  {id:'v_std',    name:'縦長・基本',kubun:'施工状況写真',     narrow:true, top:['kouji','koushu','sokuten'], main:'', bottom:['hacchu','sekou'], desc:'縦長の基本形'},
+  {id:'v_kanryo', name:'縦長・完了（項目少なめ）',kubun:'着手前及び完成写真', state:'完成', narrow:true, top:['kouji','sokuten'], main:'完 了', bottom:['sekou'], desc:'縦長・項目少なめ'},
+  {id:'v_dekigata',name:'縦長・出来形（絵＋表）',kubun:'出来形管理写真',   narrow:true, top:['kouji','koushu','sokuten'], sketch:true, table:['測定項目','設計値','実測値','差'], diff:true, bottom:['sekou'], desc:'縦長・絵と表'},
+  {id:'v_kenshu', name:'縦長・製品検収（絵＋表）',kubun:'使用材料写真',    narrow:true, top:['kouji','zairyo'], sketch:'u', table:['測定項目','規格値','実測値','差'], diff:true, bottom:['sekou'], desc:'縦長・製品の絵'},
+  {id:'kanni',    name:'簡易（工事名・測点・日付）',kubun:'施工状況写真',     top:['kouji','sokuten','date'], bottom:['sekou'], desc:'4項目だけのシンプル'},
+  {id:'mame',     name:'豆黒板（小さめ）',kubun:'施工状況写真',     top:['koushu','sokuten'], bottom:[], small:true, desc:'小さく目立たない'},
+  {id:'free',     name:'自由記入（記事欄のみ）',kubun:'その他',           top:['kouji','koushu','sokuten'], main:'', bottom:['sekou'], desc:'中央に何でも書ける'},
+  {id:'none',     name:'黒板なし（写真のみ）',kubun:'施工状況写真',     top:[], bottom:[], none:true, desc:'情報だけ記録'}
 ];
 const keysOf=t=>[...(t.top||[]),...(t.bottom||[])];
 const hasMain=t=>typeof t.main==='string';
@@ -836,6 +819,7 @@ function layout(b,W,H,d){
       return {t:'row',bi,key:bl.key,label:bl.label||'',value:v,h};
     }
     if(bl.t==='main') return {t:'main',bi,text:bl.text||'',date:bl.date!==false,h:0};
+    if((bl.t==='table'||bl.t==='sketch')&&bl.hide) return null; // 非表示にした絵・表
     if(bl.t==='table') return {t:'table',bi,head:bl.head||['','',''],rows:bl.rows||[],diff:!!bl.diff,h:0};
     if(bl.t==='sketch') return {t:'sketch',bi,shapes:bl.shapes||[],h:0};
     return null;
@@ -1043,14 +1027,14 @@ function fitCam(){
   drawOverlay();
 }
 video.addEventListener('resize',()=>fitCam());
-let lastG=null;
+let lastG=null, hintUntil=0;
 function drawOverlay(){
   const r=cam.getBoundingClientRect(); if(!r.width) return;
   const dpr=Math.min(2,window.devicePixelRatio||1);
   overlay.width=Math.round(r.width*dpr); overlay.height=Math.round(r.height*dpr);
   const ctx=overlay.getContext('2d'); ctx.clearRect(0,0,overlay.width,overlay.height);
   lastG=drawBoard(ctx,board,overlay.width,overlay.height,new Date());
-  $('#dragHint').style.display=lastG?'':'none';
+  $('#dragHint').style.display=lastG&&Date.now()<hintUntil?'':'none';
   updateGuide();
 }
 // 黒板：指で動かす（ドラッグ）／タップで編集（絵の部分をタップすると絵の画面）
@@ -1184,21 +1168,17 @@ function stepSokuten(s,d){
   if(m2){ const n=Math.max(0,parseInt(m2[1],10)+d); return s.slice(0,m2.index)+n+s.slice(m2.index+m2[1].length); }
   return s+' '+(d>0?1:0);
 }
-$('#stVal').onclick=()=>openEditMode();
-$('#swBtn').onclick=()=>openBoard('my');
-$('#dkBtn').onclick=()=>toggleDekigata();
+
 $('#rotMenu').onclick=()=>openMenu();
 
 /* ===================== 撮影画面の表示 ===================== */
 function renderShootInfo(){
-  const v=board.values;
-  $('#bbKind').textContent=`黒板：${board.pname||'カスタム'}（${designOf(board).name}）`;
-  const sum=[v.koushu,v.shubetsu,v.saibetsu].filter(Boolean).join(' ／ ');
-  $('#bbSum').textContent=sum||'タップして内容を入力';
-  $('#stVal').textContent='測点 '+(v.sokuten||'未入力');
-  $('#chGuide').classList.toggle('on',prefs.guide);
-  $('#chGuide').parentElement.hidden = board.state!=='完成';
-  $('#dkBtn').classList.toggle('on',!!board.dkMode); $('#dkBtn').textContent=board.dkMode?'📐 出来形モード中（終了）':'📐 出来形モード';
+  // 左のボタンは必要なものだけ表示（絵・表があるときだけ、着工前を重ねるは完成の黒板で着工前写真があるときだけ）
+  const sk=board.blocks.find(b=>b.t==='sketch'), tb=board.blocks.find(b=>b.t==='table');
+  const tg=(id,blk)=>{ const el=$(id); el.hidden=!blk||board.none; if(blk){ const on=!blk.hide; el.classList.toggle('on',on); el.setAttribute('aria-pressed',on); } };
+  tg('#tgSketch',sk); tg('#tgTable',tb);
+  const canGuide=board.state==='完成'&&!!findBefore(board.values);
+  $('#tgGuide').hidden=!canGuide; $('#tgGuide').classList.toggle('on',canGuide&&prefs.guide);
   drawOverlay();
 }
 function findBefore(p){ // 同じ工種・種別・測点の着工前（最新）
@@ -1214,9 +1194,12 @@ function setLastThumb(){ const p=photos.slice().sort((a,b)=>b.ts-a.ts)[0]; $('#l
 function objUrl(p,k){ const key=p.id+k; if(!urlCache.has(key)) urlCache.set(key,URL.createObjectURL(p[k])); return urlCache.get(key); }
 
 $('#menuBtn').onclick=()=>openMenu();
-$('#chGuide').onclick=()=>{ prefs.guide=!prefs.guide; savePrefs(); renderShootInfo(); if(prefs.guide&&!findBefore(board.values)) toast('同じ工種・種別・測点の着工前写真がありません',2400); };
+$('#tgGuide').onclick=()=>{ prefs.guide=!prefs.guide; savePrefs(); renderShootInfo(); };
+// 絵・表をワンタップで表示／非表示（中身は消えずに残る）
+$('#tgSketch').onclick=()=>{ const b=board.blocks.find(x=>x.t==='sketch'); if(!b) return; b.hide=!b.hide; saveBoard(); renderShootInfo(); toast(b.hide?'絵を隠しました':'絵を表示しました',900); };
+$('#tgTable').onclick=()=>{ const b=board.blocks.find(x=>x.t==='table'); if(!b) return; b.hide=!b.hide; saveBoard(); renderShootInfo(); toast(b.hide?'表を隠しました':'表を表示しました',900); };
 $('#lastBtn').onclick=()=>show('list');
-$('#boardBtn').onclick=()=>openEditMode();
+
 
 /* ===================== 黒板編集 ===================== */
 let boardTab='write';
@@ -1237,6 +1220,7 @@ function drawBoardFit(cv,b,pad=12,bg=true){
 }
 function drawBoardOnly(cv,b){ drawBoardFit(cv,b); }
 function renderBoardPreview(){ drawBoardOnly($('#bPrev'),board); }
+function blockSummary(p){ if(p.none) return '黒板を写さない'; return (p.blocks||[]).map(b=>b.t==='row'?(b.label||'項目'):b.t==='main'?'記事欄':b.t==='sketch'?'絵':'表').filter((v,i,a)=>a.indexOf(v)===i).join('・'); }
 function tileFor(name,sub,b,on,onclick,onDel){
   const el=document.createElement('div'); el.className='tpl'+(on?' on':''); el.tabIndex=0; el.setAttribute('role','button');
   el.innerHTML=`<canvas width="300" height="225"></canvas><b>${esc(name)}</b>${sub?`<small>${esc(sub)}</small>`:''}${onDel?'<button class="tdel" aria-label="削除">✕</button>':''}`;
@@ -1374,7 +1358,7 @@ function renderMyTab(){
   if(!myBoards.length) my.innerHTML='<p class="muted" style="grid-column:1/-1">まだありません。黒板を作ったら、上の「保存」でここに登録できます。</p>';
   myBoards.forEach(p=>my.appendChild(tileFor(p.name,'',{...board,...p},false,()=>{ applyPattern(p); boardChanged(true); toast(`「${p.name}」に切り替えました`); },async()=>{ if(await askConfirm(`My黒板「${p.name}」を削除しますか？`)){ myBoards=myBoards.filter(x=>x.id!==p.id); saveMyBoards(); renderMyTab(); } })));
   const tg=$('#tplGrid'); tg.innerHTML='';
-  TEMPLATES.forEach(t=>{ const p=presetOf(t.id); tg.appendChild(tileFor(p.name,p.desc,{...board,...p,design:board.design},false,()=>{ applyPattern(p); boardChanged(true); toast(`「${p.name}」に切り替えました`); })); });
+  TEMPLATES.forEach(t=>{ const p=presetOf(t.id); tg.appendChild(tileFor(p.name,blockSummary(p),{...board,...p,design:board.design},false,()=>{ applyPattern(p); boardChanged(true); toast(`「${p.name}」に切り替えました`); })); });
   const nm=$('#myName'); nm.value=(board.pname||'').replace('（編集中）','');
   $('#mySave').onclick=()=>{
     const name=nm.value.trim()||'My黒板';
@@ -1613,6 +1597,7 @@ function renderEdSide(){
   $('#edRowAdd').hidden=sel.t!=='table'; $('#edRowDel').hidden=sel.t!=='table'; $('#edDiff').hidden=sel.t!=='table';
   if(sel.t==='table') $('#edDiff').textContent=sel.diff?'差の列を外す':'差の列を付ける';
   $('#edDraw').hidden=sel.t!=='sketch';
+  $('#edHide').hidden=!(sel.t==='sketch'||sel.t==='table');
   $('#edDate').hidden=sel.t!=='main'; if(sel.t==='main') $('#edDate').textContent=sel.date!==false?'日付を外す':'日付を入れる';
   const isRowMove=true; $('#edUp').disabled=ED.sel===0; $('#edDown').disabled=ED.sel===board.blocks.length-1;
 }
@@ -1635,6 +1620,7 @@ function edAdd(type){
     return;
   }
   if(type==='main'&&bl.some(b=>b.t==='main')){ toast('中央の欄はすでにあります'); return; }
+  const ex=bl.find(b=>b.t===type&&b.hide); if(ex){ ex.hide=false; ED.sel=bl.indexOf(ex); saveBoard(); renderEdit(); renderShootInfo(); toast(type==='sketch'?'絵を表示しました':'表を表示しました'); return; }
   if(type==='sketch'&&bl.some(b=>b.t==='sketch')){ toast('絵はすでにあります'); return; }
   if(type==='table'&&bl.some(b=>b.t==='table')){ toast('表はすでにあります'); return; }
   const nb = type==='main'?{t:'main',text:'',date:true} : type==='sketch'?{t:'sketch',shapes:[]} : {t:'table',head:['測定項目','設計値','実測値','差'],rows:[{a:'幅',b:'',c:''},{a:'高さ',b:'',c:''}],diff:true};
@@ -1668,6 +1654,7 @@ $('#edRowAdd').onclick=()=>{ const t=board.blocks[ED.sel]; if(t.rows.length>=6){
 $('#edRowDel').onclick=()=>{ const t=board.blocks[ED.sel]; if(t.rows.length<=1) return; t.rows.pop(); saveBoard(); renderEdit(); };
 $('#edDiff').onclick=()=>{ const t=board.blocks[ED.sel]; t.diff=!t.diff; if(t.diff&&!t.head[3]) t.head[3]='差'; saveBoard(); renderEdit(); };
 $('#edDraw').onclick=()=>openSketch(board.blocks[ED.sel]);
+$('#edHide').onclick=()=>{ const t=board.blocks[ED.sel]; t.hide=true; ED.sel=-1; ED.cell=null; saveBoard(); renderEdit(); renderShootInfo(); toast((t.t==='sketch'?'絵':'表')+'を隠しました。撮影画面左のボタンや「＋'+(t.t==='sketch'?'絵':'表')+'」でまた表示できます',2600); };
 $('#edDate').onclick=()=>{ const t=board.blocks[ED.sel]; t.date=t.date===false; saveBoard(); renderEdit(); };
 window.addEventListener('resize',()=>{ if($('#mEdit').classList.contains('on')) renderEdit(); });
 function fillDatalists(){
@@ -1957,7 +1944,7 @@ function show(v){
   $$('.view').forEach(s=>s.classList.toggle('on',s.id==='v-'+v));
   $$('#menuList button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
   document.body.classList.toggle('shooting',v==='shoot');
-  if(v==='shoot'){ startCam(); fitCam(); renderShootInfo(); try{ screen.orientation?.lock?.('landscape').catch(()=>{}); }catch(e){} } else stopCam();
+  if(v==='shoot'){ const hc=LS.get('hintCount',0); if(hc<5){ LS.set('hintCount',hc+1); hintUntil=Date.now()+5000; setTimeout(()=>drawOverlay(),5100); } startCam(); fitCam(); renderShootInfo(); try{ screen.orientation?.lock?.('landscape').catch(()=>{}); }catch(e){} } else stopCam();
   if(v==='list') renderList(); if(v==='cmp') renderCmp(); if(v==='exp') renderExp(); if(v==='set') renderSet();
 }
 function openMenu(){ openModal('mMenu'); }
@@ -1994,7 +1981,7 @@ document.addEventListener('visibilitychange',()=>{ if(document.hidden) stopCam()
   await switchProject().catch(()=>{});
   fillDatalists();
   show('shoot');
-  if(!LS.get('tip1',false)){ LS.set('tip1',true); setTimeout(()=>toast('左の黒板ボタンで、工事名や項目を入力・変更できます',3500),800); }
+  if(!LS.get('tip1',false)){ LS.set('tip1',true); setTimeout(()=>toast('黒板をタップすると、拡大して直接書き換えられます',3500),800); }
   if(navigator.storage?.persist) navigator.storage.persist().catch(()=>{});
   // ホーム画面に追加したとき、電波がなくても開けるようにする
   if('serviceWorker' in navigator && location.protocol==='https:' && window.top===window.self) navigator.serviceWorker.register('sw.js').catch(()=>{});
