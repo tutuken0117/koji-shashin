@@ -338,14 +338,13 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
 <!-- 黒板編集 -->
 <div class="modal" id="mBoard"><div class="sheet">
   <div class="hd"><h2>黒板を編集</h2><button class="x" data-close>✕</button></div>
-  <h3 style="margin-top:4px">1. 黒板の種類</h3>
+  <h3 style="margin-top:4px">1. 黒板のデザイン（10種類）</h3>
+  <div class="tpls" id="designGrid"></div>
+  <h3>2. 大きさ</h3>
+  <div class="seg" id="sizeSeg"><button data-s="0.26">小</button><button data-s="0.32">中</button><button data-s="0.4">大</button></div>
+  <h3>3. 黒板の項目（用途）</h3>
   <div class="tpls" id="tplGrid"></div>
-  <h3>2. 色と大きさ</h3>
-  <div class="row" style="flex-wrap:wrap;gap:14px">
-    <div class="colors" id="colorRow"></div>
-    <div class="seg" id="sizeSeg" style="flex:1;min-width:180px"><button data-s="0.26">小</button><button data-s="0.32">中</button><button data-s="0.4">大</button></div>
-  </div>
-  <h3>3. 書く内容</h3>
+  <h3>4. 書く内容</h3>
   <p class="muted" style="margin:0">工事名・施工者は「設定」の内容、撮影日は自動で入ります。</p>
   <div id="fieldBox"></div>
   <div id="tableBox"></div>
@@ -445,12 +444,21 @@ const TEMPLATES = [
 ];
 const keysOf=t=>[...(t.top||[]),...(t.bottom||[])];
 const hasMain=t=>typeof t.main==='string';
-const COLORS = {
-  green:{bg:'#22593b',fg:'#ffffff',line:'#ffffff',name:'緑'},
-  black:{bg:'#1d1f1e',fg:'#ffffff',line:'#ffffff',name:'黒'},
-  white:{bg:'#fbfbf7',fg:'#111111',line:'#222222',name:'白'},
-  navy: {bg:'#1d2d55',fg:'#ffffff',line:'#ffffff',name:'紺'}
-};
+// 黒板のデザイン（見た目）。内容の種類（TEMPLATES）と自由に組み合わせられる
+const DESIGNS = [
+  {id:'std',    name:'標準（緑）',       bg:'#22593b', fg:'#ffffff', line:'#ffffff', lab:'#ffffff', layout:'table'},
+  {id:'kuro',   name:'黒板（黒）',       bg:'#1d1f1e', fg:'#ffffff', line:'#ffffff', lab:'#ffffff', layout:'table'},
+  {id:'kon',    name:'紺',               bg:'#1d2d55', fg:'#ffffff', line:'#ffffff', lab:'#cfe0ff', layout:'table'},
+  {id:'wb',     name:'ホワイトボード',   bg:'#fbfbf7', fg:'#111111', line:'#333333', lab:'#1d3c8f', layout:'table', frame:'silver'},
+  {id:'wood',   name:'木枠の黒板',       bg:'#2c5a43', fg:'#fffbea', line:'rgba(255,251,234,.85)', lab:'#ffe58a', layout:'table', frame:'wood'},
+  {id:'title',  name:'工事名帯（緑）',   bg:'#22593b', fg:'#ffffff', line:'#ffffff', lab:'#ffffff', layout:'title', band:'#ffffff', bandFg:'#1b4a30'},
+  {id:'titlew', name:'工事名帯（白）',   bg:'#ffffff', fg:'#111111', line:'#333333', lab:'#333333', layout:'title', band:'#1d3c8f', bandFg:'#ffffff'},
+  {id:'labtop', name:'項目名を上に',     bg:'#f4f7f2', fg:'#111111', line:'#666666', lab:'#2a6b47', layout:'labeltop'},
+  {id:'clear',  name:'シンプル透過',     bg:'#000000', alpha:0.5, fg:'#ffffff', line:'rgba(255,255,255,.5)', lab:'#cfe8da', layout:'plain'},
+  {id:'yellow', name:'安全（黄）',       bg:'#f7d23e', fg:'#111111', line:'#111111', lab:'#111111', layout:'table', stripe:true}
+];
+const COLOR_TO_DESIGN={green:'std',black:'kuro',white:'wb',navy:'kon'};
+const designOf=b=>DESIGNS.find(x=>x.id===b.design)||DESIGNS[0];
 const QUALITY = {'1m':1280,'2m':1600,'3m':2048};
 const PRESET = {
   koushu:['道路土工','河川土工','舗装工','排水構造物工','擁壁工','法面工','基礎工','コンクリート工','構造物撤去工','仮設工','区画線工','防護柵工','道路付属施設工','管路工','地盤改良工','植栽工','護岸工','橋梁下部工','付帯工'],
@@ -502,6 +510,7 @@ function loadBoard(){
   board = Object.assign(defaultBoard(), saved); board.values=Object.assign(defaultBoard().values, board.values||{});
   if(board.v!==2){ board.v=2; board.x=null; board.y=null; board.size=0.32; board.mains={}; }
   if(!board.mains) board.mains={};
+  if(!board.design) board.design=COLOR_TO_DESIGN[board.color]||'std';
   if(!board.rows||!board.rows.length) board.rows=[{a:'',b:'',c:''}];
 }
 function saveBoard(){ LS.set('board_'+curPj, board); }
@@ -521,17 +530,26 @@ function fieldValue(b,k,d){
 function mainText(b){ const t=tplOf(b.tpl); if(!hasMain(t)) return null; const m=b.mains&&b.mains[t.id]; return m!=null?m:t.main; }
 function layout(b,W,H,d){
   const t=tplOf(b.tpl); if(t.none) return null;
+  const D=designOf(b);
   const L=Math.max(W,H);
   const bw=Math.min(b.size*L*(t.small?0.62:1), W*0.96);
   const rh=bw*(t.small?0.15:0.092);
-  const row=k=>{ const v=fieldValue(b,k,d); return {label:(t.labels&&t.labels[k])||FIELD_LABEL[k], value:v, h: v.includes('\n')?rh*1.55:rh}; };
+  const fr = D.frame==='wood' ? bw*0.035 : D.frame==='silver' ? bw*0.02 : 0;
+  const sh = D.stripe ? rh*0.34 : 0;
+  const row=k=>{
+    const v=fieldValue(b,k,d);
+    let h = v.includes('\n')?rh*1.55:rh;
+    if(D.layout==='labeltop') h*=1.32;
+    if(D.layout==='title'&&k==='kouji') h=rh*1.25;
+    return {key:k,label:(t.labels&&t.labels[k])||FIELD_LABEL[k], value:v, h};
+  };
   const top=(t.top||[]).map(row), bottom=(t.bottom||[]).map(row);
   const mh = t.table ? rh*0.95*(1+b.rows.length) : hasMain(t) ? rh*3.3 : 0;
-  const h = top.reduce((s,r)=>s+r.h,0)+mh+bottom.reduce((s,r)=>s+r.h,0);
+  const h = fr*2 + sh + top.reduce((s,r)=>s+r.h,0)+mh+bottom.reduce((s,r)=>s+r.h,0);
   const m=Math.round(L*0.004);
   let x = b.x==null ? W-bw-m : b.x*W, y = b.y==null ? H-h-m : b.y*H;
   x=clamp(x,0,W-bw); y=clamp(y,0,Math.max(0,H-h));
-  return {x,y,w:bw,h,rh,mh,top,bottom,t};
+  return {x,y,w:bw,h,rh,mh,fr,sh,top,bottom,t,D};
 }
 function fitText(ctx,s,x,y,maxW,fs,align,bold){
   s=String(s??''); if(!s) return;
@@ -554,50 +572,88 @@ function spreadText(ctx,s,cx,cy,maxW,fs){
 }
 function drawBoard(ctx,b,W,H,d){
   const g=layout(b,W,H,d); if(!g) return null;
-  const t=g.t, c=COLORS[b.color]||COLORS.green;
+  const t=g.t, D=g.D, rh=g.rh;
   ctx.save();
-  ctx.fillStyle=c.bg; ctx.fillRect(g.x,g.y,g.w,g.h);
-  ctx.strokeStyle=c.line; ctx.fillStyle=c.fg; ctx.textBaseline='middle';
+  // 枠
+  if(D.frame==='wood'){
+    const wg=ctx.createLinearGradient(g.x,g.y,g.x,g.y+g.h); wg.addColorStop(0,'#9a6a3a'); wg.addColorStop(.5,'#7a4f27'); wg.addColorStop(1,'#5e3a1b');
+    ctx.fillStyle=wg; ctx.fillRect(g.x,g.y,g.w,g.h);
+    ctx.strokeStyle='rgba(0,0,0,.35)'; ctx.lineWidth=Math.max(1,g.w*0.003); ctx.strokeRect(g.x+g.fr*0.5,g.y+g.fr*0.5,g.w-g.fr,g.h-g.fr);
+  } else if(D.frame==='silver'){
+    const sg=ctx.createLinearGradient(g.x,g.y,g.x,g.y+g.h); sg.addColorStop(0,'#e9ecef'); sg.addColorStop(.5,'#a9b0b7'); sg.addColorStop(1,'#d5d9dd');
+    ctx.fillStyle=sg; ctx.fillRect(g.x,g.y,g.w,g.h);
+  }
+  const ix=g.x+g.fr, iy=g.y+g.fr, iw=g.w-2*g.fr, ih=g.h-2*g.fr;
+  ctx.globalAlpha=D.alpha??1; ctx.fillStyle=D.bg; ctx.fillRect(ix,iy,iw,ih); ctx.globalAlpha=1;
   const thin=Math.max(1,g.w*0.0032), thick=Math.max(1.5,g.w*0.006);
   const ln=(x1,y1,x2,y2)=>{ ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); };
-  const x0=g.x, lw=g.w*(t.small?0.3:0.24), vw=g.w-lw, rh=g.rh;
-  let yy=g.y;
+  ctx.strokeStyle=D.line; ctx.textBaseline='middle';
+  let yy=iy;
+  // 安全（黄）：上部のトラ柄
+  if(g.sh){
+    ctx.save(); ctx.beginPath(); ctx.rect(ix,yy,iw,g.sh); ctx.clip();
+    ctx.fillStyle='#111'; ctx.fillRect(ix,yy,iw,g.sh); ctx.fillStyle='#f7d23e';
+    const st=g.sh*1.2; for(let sx=ix-g.sh;sx<ix+iw+g.sh;sx+=st*2){ ctx.beginPath(); ctx.moveTo(sx,yy+g.sh); ctx.lineTo(sx+st,yy+g.sh); ctx.lineTo(sx+st+g.sh,yy); ctx.lineTo(sx+g.sh,yy); ctx.closePath(); ctx.fill(); }
+    ctx.restore(); yy+=g.sh;
+  }
+  const lw=iw*(t.small?0.3:0.24), vw=iw-lw;
+  const plain=D.layout==='plain';
+  const sep=()=>{ if(!plain && yy>iy+0.5){ ctx.lineWidth=thin; ln(ix,yy,ix+iw,yy); } };
   const drawRow=r=>{
-    ctx.lineWidth=thin;
-    if(yy>g.y+0.5) ln(x0,yy,x0+g.w,yy);
-    ln(x0+lw,yy,x0+lw,yy+r.h);
-    spreadText(ctx,r.label,x0+lw/2,yy+r.h/2,lw*0.8,rh*0.4);
+    if(D.layout==='title'&&r.key==='kouji'){
+      ctx.fillStyle=D.band; ctx.fillRect(ix,yy,iw,r.h);
+      ctx.fillStyle=D.bandFg; fitText(ctx,r.value,ix+iw/2,yy+r.h/2,iw*0.92,rh*0.46,'center',true);
+      yy+=r.h; return;
+    }
+    sep();
+    if(D.layout==='labeltop'){
+      ctx.fillStyle=D.lab; fitText(ctx,r.label,ix+rh*0.25,yy+r.h*0.25,iw*0.5,rh*0.28,'left',true);
+      ctx.fillStyle=D.fg;
+      const lines=String(r.value).split('\n');
+      if(lines.length>1) lines.slice(0,2).forEach((s,i)=>fitText(ctx,s,ix+iw/2,yy+r.h*(i?0.8:0.56),iw*0.9,rh*0.34,'center',true));
+      else fitText(ctx,r.value,ix+iw/2,yy+r.h*0.64,iw*0.9,rh*0.44,'center',true);
+      yy+=r.h; return;
+    }
+    if(!plain){ ctx.lineWidth=thin; ln(ix+lw,yy,ix+lw,yy+r.h); }
+    ctx.fillStyle=D.lab;
+    if(plain) fitText(ctx,r.label,ix+rh*0.3,yy+r.h/2,lw-rh*0.4,rh*0.36,'left',true);
+    else spreadText(ctx,r.label,ix+lw/2,yy+r.h/2,lw*0.8,rh*0.4);
+    ctx.fillStyle=D.fg;
     const lines=String(r.value).split('\n');
-    if(lines.length>1){
-      const fs=rh*0.36;
-      lines.slice(0,2).forEach((s,i)=>fitText(ctx,s,x0+lw+vw/2,yy+r.h*(i===0?0.31:0.71),vw*0.92,fs,'center',true));
-    } else fitText(ctx,r.value,x0+lw+vw/2,yy+r.h/2,vw*0.92,rh*0.42,'center',true);
+    const vx=plain?ix+lw:ix+lw+vw/2, al=plain?'left':'center';
+    if(lines.length>1) lines.slice(0,2).forEach((s,i)=>fitText(ctx,s,vx,yy+r.h*(i===0?0.31:0.71),vw*0.92,rh*0.36,al,true));
+    else fitText(ctx,r.value,vx,yy+r.h/2,vw*0.92,rh*0.42,al,true);
     yy+=r.h;
   };
   g.top.forEach(drawRow);
   if(g.mh){
-    ctx.lineWidth=thin; if(yy>g.y+0.5) ln(x0,yy,x0+g.w,yy);
+    sep();
     if(t.table){
-      const cw=[0.4,0.3,0.3].map(v=>v*g.w), th=rh*0.95;
+      const cw=[0.4,0.3,0.3].map(v=>v*iw), th=rh*0.95;
+      ctx.lineWidth=thin;
       [t.table.slice(), ...b.rows.map(r=>[r.a,r.b,r.c])].forEach((r,i)=>{
-        if(i>0) ln(x0,yy,x0+g.w,yy);
-        let xx=x0;
-        r.forEach((v,j)=>{ if(j>0) ln(xx,yy,xx,yy+th); if(i===0) spreadText(ctx,v,xx+cw[j]/2,yy+th/2,cw[j]*0.8,rh*0.36); else fitText(ctx,v,xx+cw[j]/2,yy+th/2,cw[j]*0.88,rh*0.44,'center',true); xx+=cw[j]; });
+        if(i>0) ln(ix,yy,ix+iw,yy); else if(plain) ln(ix+rh*0.2,yy+th,ix+iw-rh*0.2,yy+th);
+        let xx=ix;
+        r.forEach((v,j)=>{ if(j>0&&!plain) ln(xx,yy,xx,yy+th);
+          if(i===0){ ctx.fillStyle=D.lab; spreadText(ctx,v,xx+cw[j]/2,yy+th/2,cw[j]*0.8,rh*0.36); }
+          else { ctx.fillStyle=D.fg; fitText(ctx,v,xx+cw[j]/2,yy+th/2,cw[j]*0.88,rh*0.44,'center',true); }
+          xx+=cw[j]; });
         yy+=th;
       });
     } else {
+      ctx.fillStyle=D.fg;
       const mt=mainText(b)||'';
       if(mt){
         const lines=mt.split('\n').slice(0,2);
         const fs=lines.length>1?rh*0.8:rh*1.25;
-        lines.forEach((s,i)=>{ const cy=yy+g.mh*(lines.length>1?(i?0.6:0.3):0.44); if([...s].length<=4&&!s.includes(' ')) spreadText(ctx,s,x0+g.w/2,cy,g.w*0.6,fs); else fitText(ctx,s,x0+g.w/2,cy,g.w*0.88,fs,'center',true); });
+        lines.forEach((s,i)=>{ const cy=yy+g.mh*(lines.length>1?(i?0.6:0.3):0.44); if([...s].length<=4&&!s.includes(' ')) spreadText(ctx,s,ix+iw/2,cy,iw*0.6,fs); else fitText(ctx,s,ix+iw/2,cy,iw*0.88,fs,'center',true); });
       }
-      fitText(ctx,fmtDate(d||new Date()),x0+g.w-rh*0.3,yy+g.mh-rh*0.42,g.w*0.6,rh*0.42,'right',true);
+      fitText(ctx,fmtDate(d||new Date()),ix+iw-rh*0.3,yy+g.mh-rh*0.42,iw*0.6,rh*0.42,'right',true);
       yy+=g.mh;
     }
   }
   g.bottom.forEach(drawRow);
-  ctx.lineWidth=thick; ctx.strokeRect(g.x+thick/2,g.y+thick/2,g.w-thick,g.h-thick);
+  if(!plain){ ctx.lineWidth=thick; ctx.strokeStyle=D.line; ctx.strokeRect(ix+thick/2,iy+thick/2,iw-thick,ih-thick); }
   ctx.restore();
   return g;
 }
@@ -777,7 +833,7 @@ $('#rotMenu').onclick=()=>openMenu();
 /* ===================== 撮影画面の表示 ===================== */
 function renderShootInfo(){
   const t=tplOf(board.tpl), v=board.values;
-  $('#bbKind').textContent=`黒板：${t.name}（${COLORS[board.color].name}）`;
+  $('#bbKind').textContent=`黒板：${designOf(board).name}／${t.name}`;
   const sum=[v.koushu,v.shubetsu,v.saibetsu].filter(Boolean).join(' ／ ');
   $('#bbSum').textContent= keysOf(t).includes('koushu') ? (sum||'工種を入力してください') : (v.zairyo||mainText(board)||t.desc);
   $('#stVal').textContent='測点 '+(v.sokuten||'未入力');
@@ -804,6 +860,20 @@ $('#boardBtn').onclick=()=>openBoard();
 
 /* ===================== 黒板編集 ===================== */
 function openBoard(){ renderBoardEditor(); openModal('mBoard'); }
+function previewBg(ctx){ const g=ctx.createLinearGradient(0,0,0,180); g.addColorStop(0,'#a9bccb'); g.addColorStop(.55,'#7d9270'); g.addColorStop(1,'#5b6e4c'); ctx.fillStyle=g; ctx.fillRect(0,0,240,180); }
+function sampleBoard(over){ return {...board,size:0.62,x:null,y:null,values:{...board.values,koushu:board.values.koushu||'舗装工',shubetsu:board.values.shubetsu||'表層工'},...over}; }
+function renderDesignGrid(){
+  const grid=$('#designGrid'); grid.innerHTML='';
+  const tp=tplOf(board.tpl).none?'after':board.tpl;
+  DESIGNS.forEach(D=>{
+    const b=document.createElement('button'); b.className='tpl'+(designOf(board).id===D.id?' on':'');
+    b.innerHTML=`<canvas width="240" height="180"></canvas><b>${D.name}</b>`;
+    const ctx=b.querySelector('canvas').getContext('2d'); previewBg(ctx);
+    drawBoard(ctx,sampleBoard({tpl:tp,design:D.id,size:tplOf(tp).small?0.9:0.62}),240,180,new Date());
+    b.onclick=()=>{ board.design=D.id; saveBoard(); renderBoardEditor(); renderShootInfo(); };
+    grid.appendChild(b);
+  });
+}
 function renderTplGrid(){
   const grid=$('#tplGrid'); grid.innerHTML='';
   TEMPLATES.forEach(t=>{
@@ -820,8 +890,7 @@ function renderTplGrid(){
 function renderBoardEditor(){
   renderTplGrid();
   const t=tplOf(board.tpl);
-  const cr=$('#colorRow'); cr.innerHTML='';
-  Object.entries(COLORS).forEach(([k,c])=>{ const b=document.createElement('button'); b.style.background=c.bg; b.title=c.name; b.setAttribute('aria-label',c.name+'色'); if(k==='white') b.style.outline='1px solid #999'; b.className=board.color===k?'on':''; b.onclick=()=>{ board.color=k; saveBoard(); renderBoardEditor(); renderShootInfo(); }; cr.appendChild(b); });
+  renderDesignGrid();
   $$('#sizeSeg button').forEach(b=>{ b.classList.toggle('on',+b.dataset.s===board.size); b.onclick=()=>{ board.size=+b.dataset.s; saveBoard(); renderBoardEditor(); renderShootInfo(); }; });
   const fb=$('#fieldBox'); fb.innerHTML='';
   const editable=keysOf(t).filter(k=>!['kouji','sekou','hacchu','date'].includes(k));
