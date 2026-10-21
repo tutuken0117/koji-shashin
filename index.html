@@ -46,22 +46,35 @@ nav button .ic{font-size:22px;line-height:1.2}
 nav button.on{color:var(--accent);font-weight:700}
 
 /* camera */
-.camwrap{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:6px}
-.cam{position:relative;aspect-ratio:4/3;max-width:100%;max-height:100%;width:100%;background:#000;border-radius:8px;overflow:hidden;touch-action:none}
-.cam.portrait{aspect-ratio:3/4;width:auto;height:100%}
+body.shooting header,body.shooting nav{display:none}
+.camwrap{flex:1;min-height:0;min-width:0;display:flex;align-items:center;justify-content:center}
+.cam{position:relative;width:100%;height:100%;background:#000;overflow:hidden;touch-action:none}
 .cam video,.cam .guide,.cam canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .cam .guide{pointer-events:none;display:none}
 .cam .msg{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:16px;color:#ddd;font-size:15px}
 .cam .tag{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.6);padding:4px 10px;border-radius:20px;font-size:13px;display:none}
 .cam .flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .25s}
 .cam .hint{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.55);padding:4px 10px;border-radius:20px;font-size:12px}
-.ctrl{padding:8px 12px 10px;display:flex;flex-direction:column;gap:8px}
+.ctrl{flex:none;padding-block:8px 10px;padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:8px}
+.ctop{display:flex;gap:8px;min-width:0}
+.ctop .boardbtn{flex:1;min-width:0}
+.menu{flex:none;width:58px;border:0;border-radius:12px;background:#26302b;color:#fff;font-size:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1;gap:2px}
+.menu span{font-size:10px}
+@media (orientation:landscape){
+  #v-shoot.on{flex-direction:row}
+  .ctrl{width:clamp(220px,32vw,290px);justify-content:center;gap:6px;overflow-x:hidden;overflow-y:auto;padding-block:6px}
+  .ctop{order:0}.sokuten{order:1}.shutterrow{order:2}.chips{order:3}
+  .boardbtn{padding:8px 10px;min-width:0}.boardbtn .e{display:none}
+  .menu{width:50px}
+  .chip{padding:4px 10px;min-height:34px;font-size:13px}
+  .sokuten button{height:40px}.sokuten .val{padding:6px}
+}
 .boardbtn{display:flex;align-items:center;gap:10px;width:100%;border:0;border-radius:12px;background:#26302b;color:#fff;padding:10px 12px;text-align:left}
 .boardbtn .k{font-size:12px;color:#9fd3b6}
 .boardbtn .s{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .boardbtn .e{margin-left:auto;background:#3fa775;color:#06130c;border-radius:10px;padding:6px 12px;font-weight:700;font-size:14px;white-space:nowrap}
 .row{display:flex;gap:8px;align-items:center}
-.sokuten{display:flex;align-items:center;gap:6px;flex:1;min-width:0}
+.sokuten{display:flex;align-items:center;gap:6px;min-width:0}
 .sokuten button{width:48px;height:44px;border-radius:10px;border:0;background:#26302b;color:#fff;font-size:20px}
 .sokuten .val{flex:1;min-width:0;text-align:center;font-weight:700;font-size:17px;background:#26302b;border-radius:10px;padding:8px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
@@ -72,7 +85,7 @@ nav button.on{color:var(--accent);font-weight:700}
 .shutter{width:78px;height:78px;border-radius:50%;border:5px solid #fff;background:#e9eee9;box-shadow:0 0 0 3px #3fa775 inset;touch-action:none;user-select:none;-webkit-user-select:none}
 .shutter:active{transform:scale(.94)}
 .shutter.burst{background:#ff6b5b}
-.count{width:56px;text-align:center;font-size:12px;color:#cfd8d3}
+.count{width:64px;white-space:nowrap;text-align:center;font-size:12px;color:#cfd8d3}
 .count b{display:block;font-size:22px;color:#fff}
 
 /* common */
@@ -188,19 +201,19 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
         </div>
       </div>
       <div class="ctrl">
-        <button class="boardbtn" id="boardBtn">
-          <div style="min-width:0"><div class="k" id="bbKind">黒板：標準</div><div class="s" id="bbSum">工種を入力してください</div></div>
-          <span class="e">黒板を編集</span>
-        </button>
-        <div class="row">
-          <div class="sokuten">
-            <button id="stPrev" aria-label="測点を戻す">◀</button>
-            <div class="val" id="stVal">測点 未入力</div>
-            <button id="stNext" aria-label="測点を進める">▶</button>
-          </div>
+        <div class="ctop">
+          <button class="menu" id="menuBtn" aria-label="メニュー">☰<span>メニュー</span></button>
+          <button class="boardbtn" id="boardBtn">
+            <div style="min-width:0"><div class="k" id="bbKind">黒板：標準</div><div class="s" id="bbSum">工種を入力してください</div></div>
+            <span class="e">黒板を編集</span>
+          </button>
+        </div>
+        <div class="sokuten">
+          <button id="stPrev" aria-label="測点を戻す">◀</button>
+          <div class="val" id="stVal">測点 未入力</div>
+          <button id="stNext" aria-label="測点を進める">▶</button>
         </div>
         <div class="chips">
-          <button class="chip" id="chCont">連続撮影</button>
           <button class="chip" id="chAdv">撮るたび測点を進める</button>
           <button class="chip" id="chGuide">着工前を重ねる</button>
         </div>
@@ -284,7 +297,6 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
       </div>
       <div class="card">
         <h3 style="margin-top:0">撮影</h3>
-        <div class="toggle"><div>撮影後に確認画面を出す<div class="muted">連続撮影がオフのときだけ。初めての方はオンがおすすめ</div></div><label class="sw"><input type="checkbox" id="optConfirm"><span></span></label></div>
         <div class="toggle"><div>着工前を重ねる濃さ</div><input type="range" id="optGuideOp" min="15" max="70" style="width:45%"></div>
         <div class="toggle"><div>端末のカメラアプリで撮る<div class="muted">アプリ内カメラが使えない機種向け</div></div><button class="btn" id="useNative" style="flex:none">開く</button></div>
         <div class="toggle"><div>撮影済みの写真を取り込む<div class="muted">いまの黒板を合成して保存します</div></div><button class="btn" id="useImport" style="flex:none">選ぶ</button></div>
@@ -368,7 +380,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
   <ol class="steps">
     <li><b>工事を設定</b><br><span class="muted">上の緑の帯をタップして、工事名と施工者を入れます（最初の1回だけ）。</span></li>
     <li><b>黒板を選んで書く</b><br><span class="muted">「黒板を編集」から種類（着工前・完成・出来形など）を選び、工種・種別・測点を入れます。</span></li>
-    <li><b>シャッターを押す</b><br><span class="muted">黒板入りの写真が保存されます。「連続撮影」をオンにすると確認なしで続けて撮れ、シャッター長押しで連写します。</span></li>
+    <li><b>シャッターを押す</b><br><span class="muted">黒板入りの写真がすぐ保存されるので、続けてどんどん撮れます。シャッター長押しで連写します。スマホを横にしても撮れます。左上の「☰メニュー」で写真一覧や設定に移ります。</span></li>
   </ol>
   <div class="note">💡 <b>着工前と完成の対比</b>：完成を撮るとき「着工前を重ねる」をオンにすると、同じ測点の着工前写真が半透明で表示されます。同じ角度で撮れば「対比」画面できれいに並びます。</div>
   <div class="note" style="margin-top:8px">📤 撮り終わったら「書き出し」→「電子納品形式」でZIPを作り、写管屋に取り込みます。</div>
@@ -599,11 +611,16 @@ async function startCam(){
   }
 }
 function stopCam(){ if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; camReady=false; } }
+// 写る範囲（4:3）を画面いっぱいの最大サイズで表示する
 function fitCam(){
-  const portrait = camReady && video.videoHeight>video.videoWidth;
-  cam.classList.toggle('portrait',portrait);
+  const wrap=cam.parentElement.getBoundingClientRect(); if(!wrap.width) return;
+  const portrait = camReady ? video.videoHeight>video.videoWidth : wrap.height>wrap.width*1.15;
+  const ar = portrait?3/4:4/3;
+  let w=wrap.width, h=w/ar; if(h>wrap.height){ h=wrap.height; w=h*ar; }
+  cam.style.width=Math.floor(w)+'px'; cam.style.height=Math.floor(h)+'px';
   drawOverlay();
 }
+video.addEventListener('resize',()=>fitCam());
 let lastG=null;
 function drawOverlay(){
   const r=cam.getBoundingClientRect(); if(!r.width) return;
@@ -679,8 +696,7 @@ async function shoot(fromBurst){
     const f=$('#flash'); f.style.transition='none'; f.style.opacity=.85; requestAnimationFrame(()=>{ f.style.transition='opacity .3s'; f.style.opacity=0; });
     navigator.vibrate?.(30);
     const p=await composePhoto(video,video.videoWidth,video.videoHeight);
-    if(!prefs.continuous && prefs.confirm && !fromBurst){ pending=p; $('#cfImg').src=URL.createObjectURL(p.blob); openModal('mConfirm'); }
-    else { await storePhoto(p); toast(`保存しました（今回 ${sessionCount}枚目）`,900); }
+    await storePhoto(p); toast(`保存しました（今回 ${sessionCount}枚目）`,900);
   }catch(e){ console.error(e); toast('保存できませんでした：'+e.message,3000); }
   finally{ busy=false; }
 }
@@ -693,8 +709,7 @@ $('#fileCap').addEventListener('change',async e=>{
   const f=e.target.files[0]; e.target.value=''; if(!f) return;
   if(!proj().name){ openFirst(); return; }
   const p=await fromFile(f);
-  if(prefs.confirm && !prefs.continuous){ pending=p; $('#cfImg').src=URL.createObjectURL(p.blob); openModal('mConfirm'); }
-  else { await storePhoto(p); toast(`保存しました（今回 ${sessionCount}枚目）。続けて撮るにはシャッター`,1800); }
+  await storePhoto(p); toast(`保存しました（今回 ${sessionCount}枚目）。続けて撮るにはシャッター`,1800);
 });
 $('#fileImp').addEventListener('change',async e=>{
   const fs=[...e.target.files]; e.target.value=''; if(!fs.length) return;
@@ -712,7 +727,7 @@ $('#cfRetake').onclick=()=>{ pending=null; closeModal('mConfirm'); };
   s.addEventListener('pointerdown',e=>{
     if(!camReady) return;
     e.preventDefault(); held=false; shoot(false);
-    if(prefs.continuous && camReady){
+    {
       timer=setTimeout(function tick(){ held=true; s.classList.add('burst'); shoot(true); timer=setTimeout(tick,650); },600);
     }
   });
@@ -741,7 +756,6 @@ function renderShootInfo(){
   const sum=[v.koushu,v.shubetsu,v.saibetsu].filter(Boolean).join(' ／ ');
   $('#bbSum').textContent= keysOf(t).includes('koushu') ? (sum||'工種を入力してください') : (v.zairyo||mainText(board)||t.desc);
   $('#stVal').textContent='測点 '+(v.sokuten||'未入力');
-  $('#chCont').classList.toggle('on',prefs.continuous);
   $('#chAdv').classList.toggle('on',prefs.advance);
   $('#chGuide').classList.toggle('on',prefs.guide);
   $('#chGuide').style.display = board.tpl==='after'?'':'none';
@@ -759,7 +773,7 @@ function updateGuide(){
 function setLastThumb(){ const p=photos.slice().sort((a,b)=>b.ts-a.ts)[0]; $('#lastBtn').style.backgroundImage=p?`url(${objUrl(p,'thumb')})`:''; }
 function objUrl(p,k){ const key=p.id+k; if(!urlCache.has(key)) urlCache.set(key,URL.createObjectURL(p[k])); return urlCache.get(key); }
 
-$('#chCont').onclick=()=>{ prefs.continuous=!prefs.continuous; savePrefs(); renderShootInfo(); toast(prefs.continuous?'連続撮影オン：確認なしで保存。長押しで連写します':'連続撮影オフ'); };
+$('#menuBtn').onclick=()=>show('list');
 $('#chAdv').onclick=()=>{ prefs.advance=!prefs.advance; savePrefs(); renderShootInfo(); toast(prefs.advance?'撮るたびに測点が1つ進みます':'測点の自動送りオフ'); };
 $('#chGuide').onclick=()=>{ prefs.guide=!prefs.guide; savePrefs(); renderShootInfo(); if(prefs.guide&&!findBefore(board.values)) toast('同じ工種・種別・測点の着工前写真がありません',2400); };
 $('#lastBtn').onclick=()=>show('list');
@@ -1091,7 +1105,7 @@ function renderSet(){
   const sel=$('#pjSel'); sel.innerHTML=projects.map(p=>`<option value="${p.id}" ${p.id===curPj?'selected':''}>${esc(p.name||'（名称未設定）')}</option>`).join('');
   const p=proj(); $('#pjN').value=p.name; $('#pjS').value=p.sekou; $('#pjH').value=p.hacchu||''; $('#pjD').value=p.daibunrui||'工事';
   $$('#qSeg button').forEach(b=>b.classList.toggle('on',b.dataset.q===prefs.quality));
-  $('#optConfirm').checked=prefs.confirm; $('#optGuideOp').value=prefs.guideOp;
+  $('#optGuideOp').value=prefs.guideOp;
   $('#optDtd').value=prefs.dtd; $('#optKijun').value=prefs.kijun;
   if(navigator.storage?.estimate) navigator.storage.estimate().then(e=>{ $('#storeInfo').textContent=`写真はこの端末のブラウザ内に保存されます（使用量 約${Math.round((e.usage||0)/1048576)}MB）。こまめに書き出してください。`; }).catch(()=>{});
 }
@@ -1100,7 +1114,6 @@ $('#pjAdd').onclick=async()=>{ const p={id:uid(),name:'',sekou:proj().sekou,daib
 ['pjN','pjS','pjH','pjD'].forEach(id=>$('#'+id).addEventListener('input',()=>{ const p=projects.find(p=>p.id===curPj); if(!p) return; p.name=$('#pjN').value; p.sekou=$('#pjS').value; p.hacchu=$('#pjH').value; p.daibunrui=$('#pjD').value; saveProjects(); renderHeader(); }));
 $('#pjD').addEventListener('change',()=>$('#pjD').dispatchEvent(new Event('input')));
 $$('#qSeg button').forEach(b=>b.onclick=()=>{ prefs.quality=b.dataset.q; savePrefs(); renderSet(); });
-$('#optConfirm').onchange=e=>{ prefs.confirm=e.target.checked; savePrefs(); };
 $('#optGuideOp').oninput=e=>{ prefs.guideOp=+e.target.value; savePrefs(); };
 $('#optDtd').onchange=e=>{ prefs.dtd=e.target.value; prefs.kijun=prefs.dtd==='04'?'土木201603-01':'土木202303-01'; savePrefs(); renderSet(); };
 $('#optKijun').oninput=e=>{ prefs.kijun=e.target.value; savePrefs(); };
@@ -1117,7 +1130,8 @@ function show(v){
   curView=v;
   $$('.view').forEach(s=>s.classList.toggle('on',s.id==='v-'+v));
   $$('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
-  if(v==='shoot'){ startCam(); renderShootInfo(); } else stopCam();
+  document.body.classList.toggle('shooting',v==='shoot');
+  if(v==='shoot'){ startCam(); fitCam(); renderShootInfo(); } else stopCam();
   if(v==='list') renderList(); if(v==='cmp') renderCmp(); if(v==='exp') renderExp(); if(v==='set') renderSet();
 }
 $$('#nav button').forEach(b=>b.onclick=()=>show(b.dataset.v));
@@ -1137,7 +1151,8 @@ async function switchProject(){
   sessionCount=0; $('#cnt').textContent='0';
   renderHeader(); setLastThumb(); if(curView==='shoot') renderShootInfo();
 }
-window.addEventListener('resize',()=>{ if(curView==='shoot') drawOverlay(); });
+window.addEventListener('resize',()=>{ if(curView==='shoot') fitCam(); });
+window.addEventListener('orientationchange',()=>setTimeout(()=>{ if(curView==='shoot') fitCam(); },300));
 document.addEventListener('visibilitychange',()=>{ if(document.hidden) stopCam(); else if(curView==='shoot') startCam(); });
 
 (async function init(){
