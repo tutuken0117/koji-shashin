@@ -271,9 +271,9 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
 .edbar select{width:auto!important;min-height:40px!important;padding:4px 10px!important;background:#26302b!important;color:#fff!important;border:1.5px solid #3fa775!important;font-size:16px!important;font-weight:700}
 .edstate{font-size:12px;color:#ffb02e}
 .edmv{display:flex;gap:5px}.edmv .edb{flex:1}
-.edpk{position:absolute;z-index:4;border:0;border-radius:8px;background:rgba(242,183,5,.95);color:#111;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+.edpk{position:absolute;z-index:7;border:0;border-radius:8px;background:rgba(242,183,5,.95);color:#111;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0;box-shadow:0 1px 4px rgba(0,0,0,.4)}
 .edpk.empty{background:rgba(242,183,5,.5)}
-.eddrop{position:absolute;z-index:6;background:#fff;color:#111;border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.5);display:flex;flex-direction:column;overflow:hidden}
+.eddrop{position:absolute;z-index:8;background:#fff;color:#111;border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.5);display:flex;flex-direction:column;overflow:hidden}
 .eddrop .ddhd{padding:8px 12px;font-size:12px;font-weight:700;color:#555;background:#f1f3f2;border-bottom:1px solid #ddd}
 .eddrop .ddempty{padding:10px 12px;font-size:13px;color:#777}
 .eddrop .ddlist{overflow-y:auto;flex:1;min-height:0;-webkit-overflow-scrolling:touch}
@@ -1597,7 +1597,7 @@ function loadWords(){
   }
   wordLists=w; LS.set('wordLists_'+curPj,wordLists);
 }
-const wordsOf=key=>wordLists[key]||((isHY()&&HY_WORDS[key])||GEN_WORDS[key]||[]).slice();
+const wordsOf=key=>{ const s=wordLists[key], d=((isHY()&&HY_WORDS[key])||GEN_WORDS[key]||[]); return (s&&s.length)?s:d.slice(); };
 function saveWords(key,list){ wordLists[key]=list; LS.set('wordLists_'+curPj,wordLists); }
 // 撮影箇所（測点）の候補は「種別」ごとに分ける（例：種別が鉄塔敷地なら鉄塔のリスト、巡視路なら径間のリスト）
 function sokutenKey(){ const s=(board.values.shubetsu||'').trim(); return s?'sokuten@'+s:'sokuten'; }
@@ -1682,7 +1682,7 @@ function renderPkButtons(){
     if(!(h.k==='value'||h.k==='main'||(h.k==='cell'&&h.c===0&&h.r>=0))) return;
     const k=pickKeyFor(h); if(!k) return;
     const list=wordsOf(k), bl=board.blocks[h.bi];
-    if(!list.length&&!(bl.key==='sokuten')) return;
+    if(!list.length&&!(bl.key==='sokuten'||h.k==='main')) return;
     const b=document.createElement('button'); b.className='edpk'+(list.length?'':' empty'); b.textContent='▽'; b.setAttribute('aria-label','候補から選ぶ');
     const s=Math.max(24,Math.min(34,h.h/d*0.8));
     Object.assign(b.style,{width:s+'px',height:s+'px',left:((h.x+h.w)/d-s-3)+'px',top:(h.y/d+(h.k==='main'?4:(h.h/d-s)/2))+'px',fontSize:(s*0.5)+'px'});
