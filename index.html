@@ -445,7 +445,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
         <button class="edb" id="edAddRow">＋ 項目</button>
         <button class="edb" id="edAddSketch">＋ 絵</button>
         <button class="edb" id="edAddTable">＋ 表</button>
-        <button class="edb" id="edAddMain">＋ 中央の欄</button>
+        <button class="edb" id="edAddMain">＋ 説明文</button>
       </div>
       <div class="edgrp sel" id="edSel" hidden>
         <div class="edselname" id="edSelName"></div>
@@ -479,13 +479,13 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
     <select id="bKubun"></select>
     <label class="f">着工前・完成の対比</label>
     <div class="seg" id="bState"><button data-st="">対比なし</button><button data-st="着工前">着工前</button><button data-st="完成">完成</button></div>
-    <label class="f" for="bTitle">写真タイトル（空欄なら中央の欄に書いた内容）</label>
+    <label class="f" for="bTitle">写真タイトル（空欄なら説明文の内容）</label>
     <input type="text" id="bTitle">
   </div>
   <div class="tab" id="tab-items">
     <p class="muted" style="margin-top:0">項目名を書きかえたり、▲▼で並べ替え、✕で削除できます。「入る内容」で工種・測点などを選ぶと、写管屋の分類にも使われます。</p>
     <div id="itemsBox"></div>
-    <div class="btns" style="margin-top:8px"><button class="btn" id="addRow">＋ 項目</button><button class="btn" id="addMain">＋ 大きな文字欄</button><button class="btn" id="addTable">＋ 表</button><button class="btn" id="addSketch">＋ 絵（略図）</button></div>
+    <div class="btns" style="margin-top:8px"><button class="btn" id="addRow">＋ 項目</button><button class="btn" id="addMain">＋ 説明文</button><button class="btn" id="addTable">＋ 表</button><button class="btn" id="addSketch">＋ 絵（略図）</button></div>
     <div class="toggle" style="margin-top:8px"><div>小さい黒板（豆黒板）</div><label class="sw"><input type="checkbox" id="optSmall"><span></span></label></div>
     <div class="toggle"><div>黒板を写さない</div><label class="sw"><input type="checkbox" id="optNone"><span></span></label></div>
   </div>
@@ -1154,7 +1154,7 @@ function buildMeta(d,W,H){
     id:uid(), pj:curPj, ts:d.getTime(), w:W, h:H,
     tpl: board.state==='着工前'?'before' : board.state==='完成'?'after' : 'custom', tplName:board.pname||'黒板',
     daibunrui:proj().daibunrui||'工事', kubun:board.kubun||'施工状況写真', state:board.state||'',
-    koushu:v.koushu||'', shubetsu:v.shubetsu||'', saibetsu:v.saibetsu||'', sokuten:v.sokuten||'',
+    koushu:(v.koushu||'').replace(/\s+/g,''), shubetsu:(v.shubetsu||'').replace(/\s+/g,''), saibetsu:(v.saibetsu||'').replace(/\s+/g,''), sokuten:v.sokuten||'',
     naiyou:(mainText(board)||'').replace(/\s+/g,' ').trim(), title:photoTitle(board),
     values:Object.fromEntries((board.blocks||[]).filter(x=>x.t==='row').map(r=>[r.label,rowValue(board,r,d)])),
     rows:tb?tb.rows.map(r=>({...r})):[], tableHead:tb?tb.head.slice():null,
@@ -1261,7 +1261,8 @@ function renderShootInfo(){
   drawOverlay();
 }
 function findBefore(p){ // 同じ工種・種別・測点の着工前（最新）
-  return photos.filter(x=>x.tpl==='before'&&x.koushu===p.koushu&&x.shubetsu===p.shubetsu&&x.sokuten===p.sokuten).sort((a,b)=>b.ts-a.ts)[0];
+  const n=s=>(s||'').replace(/\s+/g,'');
+  return photos.filter(x=>x.tpl==='before'&&n(x.koushu)===n(p.koushu)&&n(x.shubetsu)===n(p.shubetsu)&&x.sokuten===p.sokuten).sort((a,b)=>b.ts-a.ts)[0];
 }
 function updateGuide(){
   const g=$('#guide'), tag=$('#guideTag');
@@ -1349,7 +1350,7 @@ function renderWriteTab(){
         addInput(bl.label,k==='kouji'?p.name:k==='sekou'?(p.sekou||DEFAULT_SEKOU):(p.hacchu||''),v=>{ if(k==='kouji') p.name=v; else p[k]=v; saveProjects(); renderHeader(); boardChanged(); },{note:'（この工事の全写真で共通）',multi:k==='hacchu',ph:ph[k],pick:'p_'+k});
       } else addInput(bl.label,board.values[k],v=>{ board.values[k]=v; boardChanged(); },{ph:ph[k],pick:k});
     } else if(bl.t==='main'){
-      addInput('中央の大きな文字（改行で2行）',bl.text,v=>{ bl.text=v; boardChanged(); },{multi:true,ph:'例：完 了',pick:'main'});
+      addInput('説明文（改行で2行）',bl.text,v=>{ bl.text=v; boardChanged(); },{multi:true,ph:'例：完　了',pick:'main'});
     } else if(bl.t==='sketch'){
       box.insertAdjacentHTML('beforeend',`<label class="f">絵（略図）</label>`);
       const cv=document.createElement('canvas'); cv.className='skprev'; cv.width=480; cv.height=200; cv.title='タップして絵を描く';
@@ -1393,7 +1394,7 @@ function renderItemsTab(){
   const bl=board.blocks;
   bl.forEach((b,i)=>{
     const el=document.createElement('div'); el.className='item';
-    const typ={row:'項目',main:'大きな文字欄',table:'表',sketch:'絵'}[b.t];
+    const typ={row:'項目',main:'説明文',table:'表',sketch:'絵'}[b.t];
     let body='';
     if(b.t==='row') body=`<input type="text" class="ilab" aria-label="項目名" placeholder="項目名"><select class="ikey" aria-label="入る内容">${KEY_OPTS.map(([k,n])=>`<option value="${k}">${n}</option>`).join('')}</select>`;
     else if(b.t==='main') body=`<label class="ichk"><input type="checkbox" class="idate"> 右下に撮影日を入れる</label>`;
@@ -1541,21 +1542,33 @@ function renderParts(){
 // 東山口幹線（個別仕様書 別紙2-1-3）の撮影箇所：鉄塔敷地は基ごと、巡視路は径間ごと
 const HY_TOWERS=[...Array.from({length:12},(_,i)=>i+1),...Array.from({length:45},(_,i)=>i+126)];
 const HY_SPANS=['トラス～No.1',...HY_TOWERS.slice(1).map((n,i)=>'No.'+HY_TOWERS[i]+'～No.'+n).filter(s=>s!=='No.1～No.2')];
-const DEFAULT_WORDS={
-  koushu:['草刈工','清掃工'], shubetsu:['鉄塔敷地','巡視路','巡視路側溝清掃'], saibetsu:['山地・密','山地・疎'],
+// 候補リストは工事ごとに持つ。この東山口の工事の候補は、この工事を選んでいるときだけ使う（別の工事は新しい空のリストから）
+const HY_WORDS={
+  koushu:['草　刈　工'], shubetsu:['鉄塔敷地','巡視路'],
   'sokuten@鉄塔敷地':HY_TOWERS.map(n=>'No.'+n),
   'sokuten@巡視路':HY_SPANS,
-  'sokuten@巡視路側溝清掃':['No.12～No.126'],
-  main:['施工前','施工後','完 了','着工前','施工中','KY活動','段階確認','立 会'],
+  main:['着　工　前','完　了']
+};
+// どの工事でも使える一般的な候補（表の測定項目など）
+const GEN_WORDS={
   table_a:['幅','高さ','厚さ','延長','深さ','基準高','法長','B','H','W','t','L','D'],
   w_材料名:['U字溝','L型擁壁','L形側溝','歩車道境界ブロック','ヒューム管','集水桝','ボックスカルバート','グレーチング','再生砕石','アスファルト合材','生コンクリート'],
   w_立会者:['監督員','現場代理人','主任技術者']
 };
-let wordLists=LS.get('wordLists',{});
-// 以前の版で工種・種別・細別の候補に混ざっていた一般的な例（道路土工・掘削工など）を取り除く
-if(!LS.get('wordsCleaned1',false)){ ['koushu','shubetsu','saibetsu'].forEach(k=>{ if(wordLists[k]) wordLists[k]=wordLists[k].filter(w=>!PRESET[k].includes(w)); }); LS.set('wordLists',wordLists); LS.set('wordsCleaned1',true); }
-const wordsOf=key=>wordLists[key]||(DEFAULT_WORDS[key]?DEFAULT_WORDS[key].slice():[]);
-function saveWords(key,list){ wordLists[key]=list; LS.set('wordLists',wordLists); }
+const isHY=()=>{ const p=proj(); return !!p.hy||(p.name||'').replace(/\s/g,'')===DEFAULT_KOUJI.replace(/\s/g,''); };
+let wordLists={};
+function loadWords(){
+  let w=LS.get('wordLists_'+curPj,null);
+  if(w===null){ // 以前の版（全工事共通のリスト）からの引き継ぎ：東山口の工事にだけ引き継ぐ
+    const old=LS.get('wordLists',null); w=(old&&isHY())?old:{};
+  }
+  if(isHY()&&!w._v2){ // 東山口の候補を指定どおりに整理（工種・種別・説明文は指定の候補だけ、細別・側溝清掃はなし）
+    ['koushu','shubetsu','main','saibetsu','sokuten@巡視路側溝清掃'].forEach(k=>delete w[k]); w._v2=true;
+  }
+  wordLists=w; LS.set('wordLists_'+curPj,wordLists);
+}
+const wordsOf=key=>wordLists[key]||((isHY()&&HY_WORDS[key])||GEN_WORDS[key]||[]).slice();
+function saveWords(key,list){ wordLists[key]=list; LS.set('wordLists_'+curPj,wordLists); }
 // 撮影箇所（測点）の候補は「種別」ごとに分ける（例：種別が鉄塔敷地なら鉄塔のリスト、巡視路なら径間のリスト）
 function sokutenKey(){ const s=(board.values.shubetsu||'').trim(); return s?'sokuten@'+s:'sokuten'; }
 function listKey(k){ return k==='sokuten'?sokutenKey():k; }
@@ -1652,7 +1665,7 @@ function renderPkButtons(){
 function closeDrop(){ const d=$('#edDrop'); if(d) d.hidden=true; }
 function openDrop(h,btn){
   const dd=$('#edDrop'), k=pickKeyFor(h), bl=board.blocks[h.bi]; if(!k) return;
-  const label=h.k==='main'?'中央の文字':h.k==='cell'?(bl.head[0]||'項目'):(bl.label||'項目');
+  const label=h.k==='main'?'説明文':h.k==='cell'?(bl.head[0]||'項目'):(bl.label||'項目');
   const list=wordsOf(k), cur=fieldGet(h);
   dd.innerHTML=`<div class="ddhd">${esc(listTitle(bl.key,label))}</div>`+(list.length?'':`<div class="ddempty">${bl.key==='sokuten'&&board.values.shubetsu?'この種別の撮影箇所はまだ登録されていません':'候補がまだありません'}</div>`);
   const ul=document.createElement('div'); ul.className='ddlist';
@@ -1721,7 +1734,7 @@ function commitInline(){ if(!ED.inline) return; ED.inline=null; $('#edInline').i
 function renderEdSide(){
   const sel=ED.sel>=0?board.blocks[ED.sel]:null, box=$('#edSel');
   box.hidden=!sel; if(!sel) return;
-  const names={row:'項目',main:'中央の欄',sketch:'絵',table:'表'};
+  const names={row:'項目',main:'説明文',sketch:'絵',table:'表'};
   $('#edSelName').textContent= sel.t==='row' ? `「${sel.label||'項目'}」` : names[sel.t];
   const h=ED.cell; const pk=h?pickKeyFor(h):null;
   $('#edPick').hidden=!pk; $('#edType').hidden=!h||h.k==='sketch';
@@ -1757,7 +1770,7 @@ function edAdd(type){
     const it=ED.g.items.find(i=>i.bi===ED.sel); const h=ED.g.hits.find(h=>h.bi===ED.sel&&h.k==='label'); if(h){ ED.cell=h; startInline(h); }
     return;
   }
-  if(type==='main'&&bl.some(b=>b.t==='main')){ toast('中央の欄はすでにあります'); return; }
+  if(type==='main'&&bl.some(b=>b.t==='main')){ toast('説明文の欄はすでにあります'); return; }
   const ex=bl.find(b=>b.t===type&&b.hide); if(ex){ ex.hide=false; ED.sel=bl.indexOf(ex); saveBoard(); renderEdit(); renderShootInfo(); toast(type==='sketch'?'絵を表示しました':'表を表示しました'); return; }
   if(type==='sketch'&&bl.some(b=>b.t==='sketch')){ toast('絵はすでにあります'); return; }
   if(type==='table'&&bl.some(b=>b.t==='table')){ toast('表はすでにあります'); return; }
@@ -1780,13 +1793,13 @@ $('#edDown').onclick=()=>edMove(1);
 $('#edDel').onclick=async()=>{
   const sel=board.blocks[ED.sel]; if(!sel) return;
   if(board.blocks.length<=1){ toast('項目を1つ以上残してください'); return; }
-  const nm=sel.t==='row'?`「${sel.label||'項目'}」`:{main:'中央の欄',sketch:'絵',table:'表'}[sel.t];
+  const nm=sel.t==='row'?`「${sel.label||'項目'}」`:{main:'説明文',sketch:'絵',table:'表'}[sel.t];
   if(!await askConfirm(`${nm}を黒板から削除しますか？`)) return;
   board.blocks.splice(ED.sel,1); ED.sel=-1; ED.cell=null; markCustom(); saveBoard(); renderEdit();
 };
 $('#edKey').onchange=e=>{ const sel=board.blocks[ED.sel]; const old=sel.key; sel.key=e.target.value; const n=FIELD_LABEL[sel.key]; if(n&&(!sel.label||sel.label==='項目'||sel.label===FIELD_LABEL[old])) sel.label=n; saveBoard(); renderEdit(); };
 $('#edPick').onclick=()=>{ const h=ED.cell; if(!h) return; const k=pickKeyFor(h); if(!k) return; const sel=board.blocks[h.bi];
-  const title=h.k==='main'?'中央の文字':h.k==='cell'?(sel.head[0]||'項目'):(sel.label||'項目');
+  const title=h.k==='main'?'説明文':h.k==='cell'?(sel.head[0]||'項目'):(sel.label||'項目');
   openPicker(k,title,fieldGet(h),w=>{ fieldSet(h,w); ED.inline=null; $('#edInline').innerHTML=''; renderEdit(); renderShootInfo(); }); };
 $('#edType').onclick=()=>{ const h=ED.cell; if(!h) return; const bl=board.blocks[h.bi]; if(h.k==='sketch'){ openSketch(bl); return; } if(h.k==='value'&&bl.key==='date'){ toast('撮影日は撮影した日が自動で入ります'); return; } if(h.k==='cell'&&bl.diff&&h.c===3){ toast('「差」は自動で計算されます'); return; } startInline(h); };
 $('#edRowAdd').onclick=()=>{ const t=board.blocks[ED.sel]; if(t.rows.length>=6){ toast('表は6行までです'); return; } t.rows.push({a:'',b:'',c:''}); saveBoard(); renderEdit(); };
@@ -2149,7 +2162,7 @@ $('#fGo').onclick=async()=>{
   if(!LS.get('helped',false)){ LS.set('helped',true); openModal('mHelp'); }
 };
 async function switchProject(){
-  loadBoard(); urlCache.forEach(u=>URL.revokeObjectURL(u)); urlCache.clear();
+  loadBoard(); loadWords(); urlCache.forEach(u=>URL.revokeObjectURL(u)); urlCache.clear();
   photos = curPj ? await DB.byPj(curPj) : [];
   sessionCount=0; $('#cnt').textContent='0';
   renderHeader(); setLastThumb(); if(curView==='shoot') renderShootInfo();
@@ -2161,7 +2174,7 @@ document.addEventListener('visibilitychange',()=>{ if(document.hidden) stopCam()
 (async function init(){
   try{ await DB.open(); }catch(e){ toast('この端末では写真を保存できません（プライベートモード等）',4000); }
   // 開いたらすぐ撮影できるよう、工事が無ければ自動で用意する（工事名は黒板の「内容」からいつでも入力）
-  if(!projects.length){ projects.push({id:uid(),name:DEFAULT_KOUJI,sekou:DEFAULT_SEKOU,hacchu:DEFAULT_HACCHU,daibunrui:'工事'}); }
+  if(!projects.length){ projects.push({id:uid(),name:DEFAULT_KOUJI,sekou:DEFAULT_SEKOU,hacchu:DEFAULT_HACCHU,daibunrui:'工事',hy:true}); }
   // 工事名・発注者が空のままの工事には、初期値を入れておく
   projects.forEach(p=>{ if(!p.name) p.name=DEFAULT_KOUJI; if(!p.hacchu) p.hacchu=DEFAULT_HACCHU; });
   if(!curPj||!projects.some(p=>p.id===curPj)) curPj=projects[0].id;
