@@ -265,8 +265,19 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
 .edkey{display:flex;flex-direction:column;gap:3px;font-size:12px;color:#cfd8d3}
 .edkey select{min-height:38px!important;padding:4px 6px!important;background:#26302b!important;color:#fff!important;border-color:#3c4842!important;font-size:13px!important}
 .edmv{display:flex;gap:5px}.edmv .edb{flex:1}
+.edpk{position:absolute;z-index:4;border:0;border-radius:8px;background:rgba(242,183,5,.95);color:#111;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+.edpk.empty{background:rgba(242,183,5,.5)}
+.eddrop{position:absolute;z-index:6;background:#fff;color:#111;border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.5);display:flex;flex-direction:column;overflow:hidden}
+.eddrop .ddhd{padding:8px 12px;font-size:12px;font-weight:700;color:#555;background:#f1f3f2;border-bottom:1px solid #ddd}
+.eddrop .ddempty{padding:10px 12px;font-size:13px;color:#777}
+.eddrop .ddlist{overflow-y:auto;flex:1;min-height:0;-webkit-overflow-scrolling:touch}
+.eddrop .dditem{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid #eee;background:#fff;color:#111;font-size:17px;font-weight:700;padding:11px 14px}
+.eddrop .dditem.on{background:#e3f1e9;color:#1f6b47}
+.eddrop .dditem.edit{flex:none;color:#2f6fd6;font-size:14px;border-top:1px solid #ddd;border-bottom:0}
 .edtxt{display:flex;align-items:center;gap:4px;flex-wrap:wrap}.edtxt span{width:100%;font-size:11px;color:#cfd8d3}.edtxt .edb{flex:1;min-height:38px;padding:4px 6px}.edtxt .edb.on{background:#3fa775;color:#06130c}
 @media (orientation:portrait){
+  .edtop{flex-wrap:wrap}
+  .edtitle{order:9;flex-basis:100%;padding:2px 4px 0}
   .edmain{flex-direction:column}
   .edside{width:auto;flex-direction:row;flex-wrap:wrap;max-height:40%}
   .edgrp{flex-direction:row;flex-wrap:wrap}
@@ -420,13 +431,13 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
 <div class="modal full" id="mEdit"><div class="edpane">
   <div class="edtop">
     <button class="edb pri" id="edDone">✓ 完了</button>
-    <div class="edtitle"><b id="edName"></b><span>黒板のマスをタップして書き換え</span></div>
+    <div class="edtitle"><b id="edName"></b><span>タップで選ぶ・2回タップで文字を打つ・▽で候補から選ぶ</span></div>
     <button class="edb tpl" id="edTpl">📋 黒板</button>
     <button class="edb" id="edDesign">🎨 色</button>
     <button class="edb" id="edClass">🗂 分類</button>
   </div>
   <div class="edmain">
-    <div class="edwrap" id="edWrap"><canvas id="edCanvas"></canvas><div id="edInline"></div></div>
+    <div class="edwrap" id="edWrap"><canvas id="edCanvas"></canvas><div id="edPkBox"></div><div id="edInline"></div><div class="eddrop" id="edDrop" hidden></div></div>
     <div class="edside">
       <div class="edgrp">
         <button class="edb" id="edAddRow">＋ 項目</button>
@@ -439,7 +450,8 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
         <div class="edtxt" id="edTxt"><span>文字</span><button class="edb" id="edFsDn" aria-label="文字を小さく">A－</button><button class="edb" id="edFsUp" aria-label="文字を大きく">A＋</button></div>
         <div class="edtxt" id="edAl"><span>配置</span><button class="edb" data-al="left">左</button><button class="edb" data-al="center">中</button><button class="edb" data-al="right">右</button><button class="edb" data-al="justify">均等</button></div><div class="edtxt" id="edInd"><span>字下げ（インデント）</span><button class="edb" id="edIndDn" aria-label="字下げを減らす">◀ 減</button><button class="edb" id="edIndUp" aria-label="字下げを増やす">増 ▶</button></div>
         <div class="edtxt" id="edLw"><span>項目名の幅</span><button class="edb" id="edLwDn" aria-label="項目名の欄を狭く">◀</button><button class="edb" id="edLwUp" aria-label="項目名の欄を広く">▶</button></div>
-        <button class="edb hi" id="edPick">候補から選ぶ ▼</button>
+        <button class="edb hi" id="edPick">候補から選ぶ ▽</button>
+        <button class="edb" id="edType">⌨ 文字を打つ</button>
         <button class="edb" id="edDraw">✏️ 絵を描く</button>
         <button class="edb" id="edHide">隠す（中身は残す）</button>
         <button class="edb" id="edRowAdd">表に行を足す</button>
@@ -524,7 +536,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
 <div class="modal" id="mHelp"><div class="sheet">
   <div class="hd"><h2>使い方（3ステップ）</h2><button class="x" data-close>✕</button></div>
   <ol class="steps">
-    <li><b>黒板をタップして書く</b><br><span class="muted">撮影画面の黒板をタップすると黒板が大きく表示されます。書き換えたいマス（項目名も中身も）をタップして、そのまま入力します。「候補から選ぶ」で登録した文字も選べます。</span></li>
+    <li><b>黒板をタップして書く</b><br><span class="muted">撮影画面の黒板をタップすると黒板が大きく表示されます。黄色い▽を押すと候補のリストが出るので、選ぶだけで入力できます。文字を打つときはマスを2回タップします。撮影箇所の候補は「種別」ごとに分かれています（鉄塔敷地なら鉄塔番号、巡視路なら径間）。</span></li>
     <li><b>ひな形・デザインを選ぶ</b><br><span class="muted">編集画面の上の「📋 黒板」で横向き／縦向き、「🎨 色」で黒板の色を選びます。マスを選ぶと右側で文字の大きさ（A－／A＋）や位置（左・中・右）、項目名の幅を変えられます。「＋項目」「＋絵」「＋表」で黒板に追加できます。</span></li>
     <li><b>シャッターを押す</b><br><span class="muted">黒板入りの写真がすぐ保存されるので、続けてどんどん撮れます。シャッター長押しで連写します。撮影はスマホを横向きにして行います。左上の「☰」で写真一覧や設定に移ります。</span></li>
   </ol>
@@ -1104,7 +1116,9 @@ const isPortrait=()=>ROT===0&&window.innerHeight>window.innerWidth;
    ROT=90：スマホの上側を左に倒して持つ（標準）／ROT=-90：右に倒して持つ（「上下反転」ボタン） */
 let ROT=0;
 function applyRotation(){
-  const W=window.innerWidth, H=window.innerHeight, want=H>W?(prefs.flip?-90:90):0, b=document.body.style;
+  // 回すのは撮影画面だけ（黒板の編集・写真一覧・設定などは縦向きのまま使える）
+  const onShoot=typeof curView==='undefined'||curView==='shoot', modalOpen=!!document.querySelector('.modal.on');
+  const W=window.innerWidth, H=window.innerHeight, want=(H>W&&onShoot&&!modalOpen)?(prefs.flip?-90:90):0, b=document.body.style;
   if(want===0){ b.position=''; b.left=''; b.top=''; b.width=''; b.height=''; b.transform=''; b.transformOrigin=''; }
   else { Object.assign(b,{position:'fixed',left:'0',top:'0',width:H+'px',height:W+'px',transformOrigin:'0 0',
     transform: want===90?`translateX(${W}px) rotate(90deg)`:`translateY(${H}px) rotate(-90deg)`}); }
@@ -1363,7 +1377,7 @@ function renderWriteTab(){
   const miss=['koushu','shubetsu','saibetsu','sokuten'].filter(k=>!used.has(k));
   if(miss.length){
     box.insertAdjacentHTML('beforeend',`<h3 style="margin-top:0">工種・測点など（写管屋の振り分けに使います）</h3>`);
-    miss.forEach(k=>addInput(k==='sokuten'?'測点・撮影箇所':FIELD_LABEL[k],board.values[k],v=>{ board.values[k]=v; boardChanged(); },{ph:ph[k],pick:k}));
+    miss.forEach(k=>addInput(listTitle(k,k==='sokuten'?'測点・撮影箇所':FIELD_LABEL[k]),board.values[k],v=>{ board.values[k]=v; boardChanged(); },{ph:ph[k],pick:listKey(k)}));
   }
   const ks=$('#bKubun'); ks.innerHTML=KUBUN.map(k=>`<option ${board.kubun===k?'selected':''}>${k}</option>`).join('');
   ks.onchange=()=>{ board.kubun=ks.value; boardChanged(); };
@@ -1522,9 +1536,15 @@ function renderParts(){
 }
 
 /* ===================== 文字の候補リスト（プルダウン） ===================== */
+// 東山口幹線（個別仕様書 別紙2-1-3）の撮影箇所：鉄塔敷地は基ごと、巡視路は径間ごと
+const HY_TOWERS=[...Array.from({length:12},(_,i)=>i+1),...Array.from({length:45},(_,i)=>i+126)];
+const HY_SPANS=['トラス～No.1',...HY_TOWERS.slice(1).map((n,i)=>'No.'+HY_TOWERS[i]+'～No.'+n).filter(s=>s!=='No.1～No.2')];
 const DEFAULT_WORDS={
-  koushu:PRESET.koushu, shubetsu:PRESET.shubetsu, saibetsu:PRESET.saibetsu,
-  main:['完 了','着工前','施工中','施工前','施工後','KY活動','段階確認','立 会'],
+  koushu:['草刈工','清掃工',...PRESET.koushu], shubetsu:['鉄塔敷地','巡視路','巡視路側溝清掃',...PRESET.shubetsu], saibetsu:['山地・密','山地・疎','丘陵地・密','丘陵地・疎',...PRESET.saibetsu],
+  'sokuten@鉄塔敷地':HY_TOWERS.map(n=>'No.'+n),
+  'sokuten@巡視路':HY_SPANS,
+  'sokuten@巡視路側溝清掃':['No.12～No.126'],
+  main:['施工前','施工後','完 了','着工前','施工中','KY活動','段階確認','立 会'],
   table_a:['幅','高さ','厚さ','延長','深さ','基準高','法長','B','H','W','t','L','D'],
   w_材料名:['U字溝','L型擁壁','L形側溝','歩車道境界ブロック','ヒューム管','集水桝','ボックスカルバート','グレーチング','再生砕石','アスファルト合材','生コンクリート'],
   w_立会者:['監督員','現場代理人','主任技術者']
@@ -1532,6 +1552,10 @@ const DEFAULT_WORDS={
 let wordLists=LS.get('wordLists',{});
 const wordsOf=key=>wordLists[key]||(DEFAULT_WORDS[key]?DEFAULT_WORDS[key].slice():[]);
 function saveWords(key,list){ wordLists[key]=list; LS.set('wordLists',wordLists); }
+// 撮影箇所（測点）の候補は「種別」ごとに分ける（例：種別が鉄塔敷地なら鉄塔のリスト、巡視路なら径間のリスト）
+function sokutenKey(){ const s=(board.values.shubetsu||'').trim(); return s?'sokuten@'+s:'sokuten'; }
+function listKey(k){ return k==='sokuten'?sokutenKey():k; }
+function listTitle(k,label){ return k==='sokuten'&&board.values.shubetsu ? `${label}（種別：${board.values.shubetsu}）` : label; }
 const PICK={key:'',onPick:null,cur:''};
 function openPicker(key,title,cur,onPick){ PICK.key=key; PICK.onPick=onPick; PICK.cur=cur||''; $('#pkTitle').textContent=`「${title}」の候補`; $('#pkNew').value=''; renderPicker(); openModal('mPick'); }
 function renderPicker(){
@@ -1580,24 +1604,64 @@ function renderEdit(){
   if(ED.g&&ED.sel>=0){ const it=ED.g.items.find(i=>i.bi===ED.sel); if(it){ ctx.save(); ctx.strokeStyle='#ffb02e'; ctx.lineWidth=3*dpr; ctx.setLineDash([8*dpr,5*dpr]); ctx.strokeRect(it.rect[0]+2,it.rect[1]+2,it.rect[2]-4,it.rect[3]-4); ctx.restore(); } }
   $('#edName').textContent=ED.photo?'撮影済み写真の黒板を修正中':(board.pname||'カスタム');
   renderEdSide();
+  renderPkButtons();
 }
 function edHitAt(px,py){
   const g=ED.g; if(!g) return null;
   const h=g.hits.find(h=>px>=h.x&&px<=h.x+h.w&&py>=h.y&&py<=h.y+h.h);
   return h||null;
 }
+// 1回タップ＝選ぶ（右に操作ボタン）／2回タップ＝その場で文字を打つ／▽＝候補リストから選ぶ
+let edLastTap={t:0,key:''};
 $('#edCanvas').addEventListener('click',e=>{
-  commitInline();
+  commitInline(); closeDrop();
   const [lx,ly]=localXY(e,$('#edCanvas')), px=lx*ED.dpr, py=ly*ED.dpr;
   const h=edHitAt(px,py);
   if(!h){ ED.sel=-1; ED.cell=null; renderEdit(); return; }
+  const key=h.k+h.bi+'_'+(h.r??'')+'_'+(h.c??''), now=Date.now(), dbl=edLastTap.key===key&&now-edLastTap.t<450;
+  edLastTap={t:now,key};
   ED.sel=h.bi; ED.cell=h; renderEdit();
   const bl=board.blocks[h.bi];
   if(h.k==='sketch'){ openSketch(bl); return; }
+  if(!dbl) return;
   if(h.k==='cell'&&bl.diff&&h.c===3&&h.r>=0){ toast('「差」は実測値を入れると自動で計算されます'); return; }
   if(h.k==='value'&&bl.key==='date'){ toast('撮影日は撮影した日が自動で入ります'); return; }
   startInline(h);
 });
+// 候補リストがある欄には、いつも▽を表示する
+function renderPkButtons(){
+  const box=$('#edPkBox'); box.innerHTML=''; if(!ED.g) return; const d=ED.dpr;
+  ED.g.hits.forEach(h=>{
+    if(!(h.k==='value'||h.k==='main'||(h.k==='cell'&&h.c===0&&h.r>=0))) return;
+    const k=pickKeyFor(h); if(!k) return;
+    const list=wordsOf(k), bl=board.blocks[h.bi];
+    if(!list.length&&!(bl.key==='sokuten')) return;
+    const b=document.createElement('button'); b.className='edpk'+(list.length?'':' empty'); b.textContent='▽'; b.setAttribute('aria-label','候補から選ぶ');
+    const s=Math.max(24,Math.min(34,h.h/d*0.8));
+    Object.assign(b.style,{width:s+'px',height:s+'px',left:((h.x+h.w)/d-s-3)+'px',top:(h.y/d+(h.k==='main'?4:(h.h/d-s)/2))+'px',fontSize:(s*0.5)+'px'});
+    const hk=h.k+h.bi+'_'+(h.r??'')+'_'+(h.c??''); b.dataset.hk=hk;
+    b.onclick=ev=>{ ev.stopPropagation(); commitInline(); ED.sel=h.bi; ED.cell=h; renderEdit(); const nb=[...$('#edPkBox').children].find(x=>x.dataset.hk===hk)||b; const nh=ED.g.hits.find(x=>x.k+x.bi+'_'+(x.r??'')+'_'+(x.c??'')===hk)||h; ED.cell=nh; openDrop(nh,nb); };
+    box.appendChild(b);
+  });
+}
+// プルダウン（▽の下に候補を並べる）
+function closeDrop(){ const d=$('#edDrop'); if(d) d.hidden=true; }
+function openDrop(h,btn){
+  const dd=$('#edDrop'), k=pickKeyFor(h), bl=board.blocks[h.bi]; if(!k) return;
+  const label=h.k==='main'?'中央の文字':h.k==='cell'?(bl.head[0]||'項目'):(bl.label||'項目');
+  const list=wordsOf(k), cur=fieldGet(h);
+  dd.innerHTML=`<div class="ddhd">${esc(listTitle(bl.key,label))}</div>`+(list.length?'':`<div class="ddempty">${bl.key==='sokuten'&&board.values.shubetsu?'この種別の撮影箇所はまだ登録されていません':'候補がまだありません'}</div>`);
+  const ul=document.createElement('div'); ul.className='ddlist';
+  list.forEach(w=>{ const it=document.createElement('button'); it.className='dditem'+(w===cur?' on':''); it.textContent=w; it.onclick=()=>{ fieldSet(h,w); closeDrop(); renderEdit(); renderShootInfo(); }; ul.appendChild(it); });
+  dd.appendChild(ul);
+  const ed=document.createElement('button'); ed.className='dditem edit'; ed.textContent='＋ 候補を登録・編集'; ed.onclick=()=>{ closeDrop(); openPicker(k,listTitle(bl.key,label),cur,w=>{ fieldSet(h,w); renderEdit(); renderShootInfo(); }); }; dd.appendChild(ed);
+  dd.hidden=false;
+  const W=$('#edWrap').clientWidth, H=$('#edWrap').clientHeight, bx=btn.offsetLeft, by=btn.offsetTop, bh=btn.offsetHeight;
+  const w=Math.min(260,W-16); dd.style.width=w+'px'; dd.style.left=clamp(bx+btn.offsetWidth-w,8,W-w-8)+'px';
+  const below=H-(by+bh)-8, above=by-8; dd.style.maxHeight=Math.max(below,above)+'px';
+  if(below>=Math.min(260,above)){ dd.style.top=(by+bh+4)+'px'; dd.style.bottom=''; } else { dd.style.top=''; dd.style.bottom=(H-by+4)+'px'; }
+  const on=ul.querySelector('.on'); if(on) on.scrollIntoView({block:'center'});
+}
 // マスの上に入力欄を出して、その場で書き換える
 function fieldGet(h){
   const bl=board.blocks[h.bi], p=PROJ_OVR||projects.find(p=>p.id===curPj);
@@ -1627,7 +1691,7 @@ function pickKeyFor(h){
   if(h.k==='cell') return h.c===0&&h.r>=0?'table_a':null;
   if(h.k==='label') return null;
   const k=bl.key||'free'; if(k==='date') return null;
-  return k==='free'?'w_'+(bl.label||'free'):(k==='kouji'||k==='hacchu'||k==='sekou')?'p_'+k:k;
+  return k==='free'?'w_'+(bl.label||'free'):(k==='kouji'||k==='hacchu'||k==='sekou')?'p_'+k:listKey(k);
 }
 function startInline(h){
   const box=$('#edInline'); box.innerHTML='';
@@ -1656,7 +1720,7 @@ function renderEdSide(){
   const names={row:'項目',main:'中央の欄',sketch:'絵',table:'表'};
   $('#edSelName').textContent= sel.t==='row' ? `「${sel.label||'項目'}」` : names[sel.t];
   const h=ED.cell; const pk=h?pickKeyFor(h):null;
-  $('#edPick').hidden=!pk;
+  $('#edPick').hidden=!pk; $('#edType').hidden=!h||h.k==='sketch';
   $('#edKeyWrap').hidden=sel.t!=='row';
   if(sel.t==='row'){ const s=$('#edKey'); s.innerHTML=KEY_OPTS.map(([k,n])=>`<option value="${k}">${n}</option>`).join(''); s.value=sel.key||'free'; }
   $('#edRowAdd').hidden=sel.t!=='table'; $('#edRowDel').hidden=sel.t!=='table'; $('#edDiff').hidden=sel.t!=='table';
@@ -1720,6 +1784,7 @@ $('#edKey').onchange=e=>{ const sel=board.blocks[ED.sel]; const old=sel.key; sel
 $('#edPick').onclick=()=>{ const h=ED.cell; if(!h) return; const k=pickKeyFor(h); if(!k) return; const sel=board.blocks[h.bi];
   const title=h.k==='main'?'中央の文字':h.k==='cell'?(sel.head[0]||'項目'):(sel.label||'項目');
   openPicker(k,title,fieldGet(h),w=>{ fieldSet(h,w); ED.inline=null; $('#edInline').innerHTML=''; renderEdit(); renderShootInfo(); }); };
+$('#edType').onclick=()=>{ const h=ED.cell; if(!h) return; const bl=board.blocks[h.bi]; if(h.k==='sketch'){ openSketch(bl); return; } if(h.k==='value'&&bl.key==='date'){ toast('撮影日は撮影した日が自動で入ります'); return; } if(h.k==='cell'&&bl.diff&&h.c===3){ toast('「差」は自動で計算されます'); return; } startInline(h); };
 $('#edRowAdd').onclick=()=>{ const t=board.blocks[ED.sel]; if(t.rows.length>=6){ toast('表は6行までです'); return; } t.rows.push({a:'',b:'',c:''}); saveBoard(); renderEdit(); };
 $('#edRowDel').onclick=()=>{ const t=board.blocks[ED.sel]; if(t.rows.length<=1) return; t.rows.pop(); saveBoard(); renderEdit(); };
 $('#edDiff').onclick=()=>{ const t=board.blocks[ED.sel]; t.diff=!t.diff; if(t.diff&&!t.head[3]) t.head[3]='差'; saveBoard(); renderEdit(); };
@@ -2050,6 +2115,9 @@ function openModal(id){ $('#'+id).classList.add('on'); }
 function closeModal(id){ $('#'+id).classList.remove('on'); }
 $$('.modal').forEach(m=>{ m.addEventListener('click',e=>{ if(e.target===m && m.id!=='mFirst' && m.id!=='mConfirm') m.classList.remove('on'); }); m.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>m.classList.remove('on'))); });
 let curView='shoot';
+// 画面（黒板編集など）を開いたり閉じたりしたら、画面の向きを切り替える（撮影画面だけ横向き固定）
+{ const mo=new MutationObserver(()=>{ if(applyRotation()&&curView==='shoot'){ fitCam(); } if($('#mEdit').classList.contains('on')) requestAnimationFrame(()=>renderEdit()); });
+  $$('.modal').forEach(m=>mo.observe(m,{attributes:true,attributeFilter:['class']})); }
 // スマホの「戻る」でも撮影画面に戻れるようにする
 window.addEventListener('popstate',()=>{ const m=document.querySelector('.modal.on'); if(m&&m.id!=='mEdit'){ m.classList.remove('on'); window.history.pushState({kp:1},''); return; } if($('#mEdit').classList.contains('on')){ closeEditMode(); return; } if(curView!=='shoot') show('shoot',true); });
 function show(v,fromBack){
@@ -2058,6 +2126,7 @@ function show(v,fromBack){
   $$('.view').forEach(s=>s.classList.toggle('on',s.id==='v-'+v));
   $$('#menuList button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
   document.body.classList.toggle('shooting',v==='shoot');
+  applyRotation();
   if(v==='shoot'){ const hc=LS.get('hintCount',0); if(hc<5){ LS.set('hintCount',hc+1); hintUntil=Date.now()+5000; setTimeout(()=>drawOverlay(),5100); } startCam(); fitCam(); renderShootInfo(); try{ screen.orientation?.lock?.('landscape').catch(()=>{}); }catch(e){} } else stopCam();
   if(v==='list') renderList(); if(v==='cmp') renderCmp(); if(v==='exp') renderExp(); if(v==='set') renderSet();
 }
