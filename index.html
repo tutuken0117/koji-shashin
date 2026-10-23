@@ -788,6 +788,7 @@ const proj=()=>projects.find(p=>p.id===curPj)||{id:'',name:'',sekou:DEFAULT_SEKO
 const tplOf=id=>TEMPLATES.find(t=>t.id===id)||TEMPLATES[0];
 const fmtDate=d=>`${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;
 const isoDate=d=>`${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+const dotDate=d=>`${d.getFullYear()}.${pad2(d.getMonth()+1)}.${pad2(d.getDate())}`; // 保存するファイル名用（例：2026.10.23）
 
 /* 黒板は「行（項目）」「大きな文字欄」「表」のブロックを上から並べたもの。
    項目名・並び・数は自由に変えられ、My黒板として保存できる */
@@ -2018,7 +2019,7 @@ async function finishPhotoEdit(){
   renderShootInfo(); renderList(); setLastThumb(); openDetail(p);
 }
 $('#dtReuse').onclick=()=>{ const p=curDetail; Object.assign(board.values,{koushu:p.koushu,shubetsu:p.shubetsu,saibetsu:p.saibetsu,sokuten:p.sokuten}); board.state=p.state||''; board.kubun=p.kubun||board.kubun; saveBoard(); closeModal('mDetail'); show('shoot'); toast('この写真の工種・測点を黒板にセットしました'); };
-$('#dtSave').onclick=async()=>{ const p=curDetail; if(await download(p.blob, `${isoDate(new Date(p.ts))}_${safeName(p.title)}.jpg`)) setTimeout(()=>toast('写管屋へは「書き出し」の電子納品ZIP（PHOTO.XML）から取り込むと、分類・タイトルが入ります',3500),1700); };
+$('#dtSave').onclick=async()=>{ const p=curDetail; if(await download(p.blob, `${dotDate(new Date(p.ts))}.jpg`)) setTimeout(()=>toast('写管屋へは「書き出し」の電子納品ZIP（PHOTO.XML）から取り込むと、分類・タイトルが入ります',3500),1700); };
 
 /* ===================== 対比 ===================== */
 function pairs(){
@@ -2073,7 +2074,7 @@ $('#cmpSave').onclick=async()=>{
   ctx.fillStyle='#111'; ctx.font=`700 34px ${FONT}`; ctx.textBaseline='middle'; ctx.textAlign='center';
   ctx.fillText(`着工前（${fmtDate(new Date(o.before.ts))}）`,W/2,H+band/2);
   ctx.fillText(`完成（${fmtDate(new Date(o.after.ts))}）`,W+gap+W/2,H+band/2);
-  download(await canvasToBlob(c,0.9),`対比_${safeName(o.koushu)}_${safeName(o.sokuten)}.jpg`);
+  download(await canvasToBlob(c,0.9),`${dotDate(new Date())}_対比.jpg`);
 };
 
 /* ===================== EXIF（撮影情報を写真に埋め込み） ===================== */
@@ -2200,7 +2201,7 @@ function buildDtd(){
   `<!ELEMENT 撮影情報 (撮影箇所?,撮影年月日)>\r\n<!ELEMENT 撮影箇所 (#PCDATA)>\r\n<!ELEMENT 撮影年月日 (#PCDATA)>\r\n<!ELEMENT 代表写真 (#PCDATA)>\r\n<!ELEMENT 提出頻度写真 (#PCDATA)>\r\n<!ELEMENT 施工管理値 (#PCDATA)>\r\n<!ELEMENT ${desc} (#PCDATA)>\r\n<!ELEMENT ソフトメーカ用TAG (#PCDATA)>\r\n`;
 }
 async function markExported(list){ for(const p of list){ p.exported=true; await DB.put(p); } renderExp(); }
-function zipName(kind){ const d=new Date(); return `${safeName(proj().name)}_${kind}_${isoDate(d).replace(/-/g,'')}.zip`; }
+function zipName(kind){ return `${dotDate(new Date())}_${kind}.zip`; }
 $('#expXml').onclick=async()=>{
   const list=exportTargets(); if(!list.length){ toast('書き出す写真がありません'); return; }
   toast('作成中…');
@@ -2217,7 +2218,7 @@ $('#expDir').onclick=async()=>{
   const files=[], used=new Set();
   for(const p of list){
     const dir=[p.kubun,p.koushu||'工種なし',p.shubetsu||'種別なし',p.saibetsu].filter(Boolean).map(safeName).join('/');
-    const d=new Date(p.ts); let base=`${isoDate(d).replace(/-/g,'')}_${pad2(d.getHours())}${pad2(d.getMinutes())}${pad2(d.getSeconds())}_${safeName(p.sokuten)}${p.state?'_'+p.state:''}`;
+    const d=new Date(p.ts), base=dotDate(d); // 同じ日の写真は 2026.10.23.jpg、2026.10.23_2.jpg … と連番
     let name=`${dir}/${base}.jpg`, n=2; while(used.has(name)) name=`${dir}/${base}_${n++}.jpg`; used.add(name);
     files.push({name,data:new Uint8Array(await p.blob.arrayBuffer()),date:d});
   }
@@ -2231,7 +2232,7 @@ function csvBytes(list){
   list.forEach(p=>{ const d=new Date(p.ts); rows.push([isoDate(d),`${pad2(d.getHours())}:${pad2(d.getMinutes())}`,p.daibunrui,p.kubun,p.koushu,p.shubetsu,p.saibetsu,p.sokuten,p.title,p.tplName,p.state,(p.rows||[]).map(r=>[r.a,r.b,r.c].join(' ')).join(' / '),p.naiyou,p.rep?'○':'',`${p.w}x${p.h}`]); });
   return new TextEncoder().encode('﻿'+rows.map(r=>r.map(q).join(',')).join('\r\n'));
 }
-$('#expCsv').onclick=()=>{ const list=photos.slice().sort(cmpPhotos); if(!list.length){ toast('写真がありません'); return; } download(new Blob([csvBytes(list)],{type:'text/csv'}),`${safeName(proj().name)}_写真一覧.csv`); };
+$('#expCsv').onclick=()=>{ const list=photos.slice().sort(cmpPhotos); if(!list.length){ toast('写真がありません'); return; } download(new Blob([csvBytes(list)],{type:'text/csv'}),`${dotDate(new Date())}_写真一覧.csv`); };
 
 /* ===================== 設定 ===================== */
 function renderSet(){
