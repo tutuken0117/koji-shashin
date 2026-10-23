@@ -38,7 +38,7 @@ html,body,button,a,input,select,textarea,canvas,label,.edb,.lbtn,.dditem{touch-a
 button{-webkit-user-select:none;user-select:none}
 button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 #app{display:flex;flex-direction:column;height:100%}
-header{display:flex;align-items:center;gap:8px;padding-block:8px;padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px));background:var(--accent);color:#fff}
+header{display:flex;align-items:center;gap:8px;padding-block:8px;padding-top:max(8px,env(safe-area-inset-top,0px));padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px));background:var(--accent);color:#fff}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) header{background:#173a29}}
 header .pj{flex:1;min-width:0;background:rgba(255,255,255,.14);border:0;border-radius:10px;padding:6px 10px;text-align:left;color:#fff}
 header .pj small{display:block;font-size:11px;opacity:.8}
@@ -79,7 +79,7 @@ body.shooting header{display:none}
 .count b{display:block;font-size:22px}
 /* 撮影は横向き専用：左にメニュー・絵/表の切替（必要なものだけ）、右にシャッター */
 .sbar{top:0;bottom:0;justify-content:center;padding-block:8px}
-.stop{left:0;right:auto;width:auto;align-items:center;justify-content:flex-start;gap:18px;padding-top:14px;padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:8px}
+.stop{left:0;right:auto;width:auto;align-items:center;justify-content:flex-start;gap:18px;padding-top:max(14px,env(safe-area-inset-top,0px));padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:8px}
 .sbottom{right:0;left:auto;width:auto;align-items:center;padding-right:max(12px,env(safe-area-inset-right,0px));padding-left:8px}
 .shutterrow{flex-direction:column;gap:12px;padding:0}
 .rotate{display:none;position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:10;background:rgba(0,0,0,.72);color:#fff;padding:8px 16px;border-radius:22px;font-size:15px;font-weight:700;pointer-events:none;white-space:nowrap}
@@ -94,7 +94,7 @@ body.shooting .backcam{display:none}
 .view{padding-bottom:96px!important}
 /* メニュー */
 .modal.top{align-items:flex-start}
-.menusheet{border-radius:0 0 18px 18px;max-width:480px}
+.menusheet{border-radius:0 0 18px 18px;max-width:480px;padding-top:max(14px,env(safe-area-inset-top,0px))}
 .menulist{display:flex;flex-direction:column;gap:6px}
 .menulist button{display:flex;align-items:center;gap:14px;min-height:56px;border:0;border-radius:12px;background:var(--bg);padding:8px 14px;font-size:17px;font-weight:700;text-align:left}
 .menulist button.on{background:var(--accent-soft);color:var(--accent)}
@@ -215,7 +215,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-
 code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
 /* 絵を描く画面（全画面） */
 .modal.full{align-items:stretch;justify-content:stretch;background:#111}
-.skpane{display:flex;width:100%;height:100%;background:#1b1f1d;color:#fff}
+.skpane{display:flex;width:100%;height:100%;background:#1b1f1d;color:#fff;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 .sktools{display:grid;grid-template-columns:repeat(2,58px);align-content:start;gap:4px;padding:6px;padding-left:max(6px,env(safe-area-inset-left,0px));overflow-y:auto;background:#141816;flex:none}
 .sktools button{width:58px;min-height:48px;border:0;border-radius:10px;background:#26302b;color:#fff;font-size:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1;padding:4px 0}
 .sktools button span{font-size:10px;margin-top:2px}
@@ -246,7 +246,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
 .dkchip.on{background:#ff8a3d}
 /* 黒板編集モード */
 .edpane{display:flex;flex-direction:column;width:100%;height:100%;background:#1b1f1d;color:#fff}
-.edtop{display:flex;align-items:center;gap:6px;padding:6px;padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px));background:#141816;flex:none}
+.edtop{display:flex;align-items:center;gap:6px;padding:6px;padding-top:max(6px,env(safe-area-inset-top,0px));padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px));background:#141816;flex:none}
 .edtitle{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.25}
 .edtitle b{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .edtitle span{font-size:12px;color:#9fd3b6}
@@ -256,7 +256,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
 .edb.hi{background:#2f6fd6}
 .edb.danger{background:#5a2320;color:#ffb4ab}
 .edb:disabled{opacity:.35}
-.edmain{flex:1;min-height:0;display:flex;gap:6px;padding:6px;padding-right:max(6px,env(safe-area-inset-right,0px));padding-left:max(6px,env(safe-area-inset-left,0px))}
+.edmain{flex:1;min-height:0;display:flex;gap:6px;padding:6px;padding-bottom:max(6px,env(safe-area-inset-bottom,0px));padding-right:max(6px,env(safe-area-inset-right,0px));padding-left:max(6px,env(safe-area-inset-left,0px))}
 .edwrap{flex:1;min-width:0;position:relative;border-radius:8px;overflow:hidden}
 #edCanvas{display:block;touch-action:manipulation;cursor:pointer}
 .edin{position:absolute;box-sizing:border-box;border:3px solid #ffb02e!important;border-radius:6px;background:rgba(10,14,12,.92)!important;color:#fff!important;padding:2px 8px!important;min-height:0!important;font-weight:700;resize:none;z-index:5;text-align:center}
@@ -783,10 +783,20 @@ function normalizeBlocks(bl){
   if(firstBottom>=0&&at>firstBottom) at=firstBottom;
   return [...rows.slice(0,at),...mids,...rows.slice(at)];
 }
+const LABEL_KEY={'工事名':'kouji','工種':'koushu','種別':'shubetsu','細別':'saibetsu','撮影箇所':'sokuten','測点':'sokuten','発注者':'hacchu','施工者':'sekou','撮影日':'date'};
+function fixRowKeys(b){
+  (b.blocks||[]).forEach(r=>{
+    if(r.t!=='row'||(r.key&&r.key!=='free')) return;
+    const k=LABEL_KEY[String(r.label||'').replace(/\s/g,'')]; if(!k) return;
+    if(['koushu','shubetsu','saibetsu','sokuten'].includes(k)&&r.value&&!b.values[k]) b.values[k]=r.value; // 書いてあった文字は引き継ぐ
+    r.key=k; delete r.value;
+  });
+}
 function applyPattern(p){
   Object.assign(board,{pname:p.name,blocks:normalizeBlocks(JSON.parse(JSON.stringify(p.blocks))),kubun:p.kubun||'施工状況写真',state:p.state||'',small:!!p.small,none:!!p.none,narrow:!!p.narrow,title:''});
   if(p.design) board.design=p.design;
   if(p.size) board.size=p.size;
+  fixRowKeys(board);
 }
 function defaultBoard(){ const p=presetOf('std'); return {v:3,design:'std',size:0.32,x:null,y:null,values:{koushu:'',shubetsu:'',saibetsu:'',sokuten:'No.1'},pname:p.name,blocks:p.blocks,kubun:p.kubun,state:'',small:false,none:false,narrow:false,title:''}; }
 function loadBoard(){
@@ -803,6 +813,7 @@ function loadBoard(){
     board.v=3;
   }
   board.blocks=normalizeBlocks(board.blocks);
+  fixRowKeys(board);
   if(!KUBUN.includes(board.kubun)) board.kubun=board.kubun?'その他':'施工状況写真';
 }
 let PROJ_OVR=null, DATE_OVR=null;  // 撮影済み写真の黒板を直しているときの工事名など・撮影日
@@ -1711,7 +1722,7 @@ function fieldGet(h){
 }
 function fieldSet(h,v){
   const bl=board.blocks[h.bi], p=PROJ_OVR||projects.find(p=>p.id===curPj);
-  if(h.k==='label') bl.label=v;
+  if(h.k==='label'){ bl.label=v; fixRowKeys(board); }
   else if(h.k==='main'){ bl.text=v; autoKubunFromMain(v); }
   else if(h.k==='cell'){ if(h.r<0) bl.head[h.c]=v; else bl.rows[h.r]['abc'[h.c]]=v; }
   else { const k=bl.key||'free';
