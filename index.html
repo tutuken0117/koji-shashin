@@ -437,6 +437,9 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
         <select id="optDtd"><option value="05">PHOTO05（令和5年3月 基準）</option><option value="04">PHOTO04（平成28年3月 旧基準）</option></select>
         <label class="f" for="optKijun">適用要領基準</label>
         <input type="text" id="optKijun">
+        <label class="f" for="optRmeta">写真に入れる分類情報（カメラメモ）の文字コード</label>
+        <select id="optRmeta"><option value="SJIS">SJIS（標準）</option><option value="JIS">JIS</option><option value="ASCII">ASCII</option></select>
+        <p class="muted">写管屋に写真をドラッグしても振り分けられないときに切り替えて試します。</p>
       </div>
       <div class="card">
         <h3 style="margin-top:0">データ</h3>
@@ -2019,7 +2022,7 @@ async function finishPhotoEdit(){
   renderShootInfo(); renderList(); setLastThumb(); openDetail(p);
 }
 $('#dtReuse').onclick=()=>{ const p=curDetail; Object.assign(board.values,{koushu:p.koushu,shubetsu:p.shubetsu,saibetsu:p.saibetsu,sokuten:p.sokuten}); board.state=p.state||''; board.kubun=p.kubun||board.kubun; saveBoard(); closeModal('mDetail'); show('shoot'); toast('この写真の工種・測点を黒板にセットしました'); };
-$('#dtSave').onclick=async()=>{ const p=curDetail; if(await download(p.blob, `${dotDate(new Date(p.ts))}.jpg`)) setTimeout(()=>toast('写管屋へは「書き出し」の電子納品ZIP（PHOTO.XML）から取り込むと、分類・タイトルが入ります',3500),1700); };
+$('#dtSave').onclick=async()=>{ const p=curDetail; download(new Blob([await photoBytes(p)],{type:'image/jpeg'}), `${dotDate(new Date(p.ts))}.jpg`); };
 
 /* ===================== 対比 ===================== */
 function pairs(){
@@ -2107,7 +2110,34 @@ function makeExif(m,d){
   const ie=ifd([ent(0x9003,2,asciiB(dt)),ent(0x9004,2,asciiB(dt)),ent(0x9286,7,uc),ent(0xA002,4,longB(m.w),1),ent(0xA003,4,longB(m.h),1)],exifOff,0);
   const tiff=u8concat([new Uint8Array([0x4D,0x4D,0,0x2A,0,0,0,8]),i0,ie]);
   const len=2+6+tiff.length;
-  return u8concat([new Uint8Array([0xFF,0xE1,len>>8,len&255,0x45,0x78,0x69,0x66,0,0]),tiff]);
+  return u8concat([new Uint8Array([0xFF,0xE1,len>>8,len&255,0x45,0x78,0x69,0x66,0,0]),tiff,makeRmeta(m,prefs.rmetaCs||'SJIS')]);
+}
+// 写真そのものに分類情報を入れる：リコー「カメラメモ」形式（JPEGのAPP5「RMETA」）。
+// 写管屋はカメラメモ付きの写真をドラッグすると分類情報で振り分けられる。
+// 形式は JACIC 助成研究 第2011-05号「メタデータを活用した写真管理業務の高度化に関する研究」6.3 で公開されているもの
+function makeRmeta(m,cs){
+  const P=PROJ_OVR||proj();
+  const kanri=(m.rows||[]).filter(r=>r.a||r.b||r.c).map(r=>[r.a,r.b,r.c].filter(Boolean).join(' ')).join('/');
+  const items=[['工事名称',P.name],['請負者名',P.sekou],['写真区分',m.kubun],['工種',m.koushu],['種別',m.shubetsu],['細別',m.saibetsu],['撮影箇所',m.sokuten],['写真タイトル',m.title],['施工管理値',kanri]];
+  // 項目名は20バイト、内容は32バイトまで（2バイト文字の途中で切らない）
+  const cut=(s,n)=>{ const b=sjis(String(s||'').trim()); let i=0; while(i<b.length){ const st=(b[i]>=0x81&&b[i]<=0x9F)||(b[i]>=0xE0&&b[i]<=0xFC)?2:1; if(i+st>n) break; i+=st; } return b.subarray(0,i); };
+  const area=(id,arr)=>{ const body=u8concat(arr.flatMap(a=>[a,new Uint8Array(1)])), pad=body.length%2, sz=2+body.length+pad; return u8concat([new Uint8Array([id>>8,id&255,sz>>8,sz&255]),body,new Uint8Array(pad)]); };
+  const csB=new Uint8Array(8); csB.set(asciiB(cs).subarray(0,Math.min(8,cs.length)));
+  const n=items.length;
+  const body=u8concat([
+    new Uint8Array([0x52,0x4D,0x45,0x54,0x41,0, 0x4D,0x4D, 1,0, 0,0, 0,0, 0,0x0A]), // "RMETA"・バイト順MM・版1.0・セグメント0・データ位置0x000A
+    new Uint8Array([n>>8,n&255]), csB,
+    area(1,items.map(([k])=>cut(k,20))), area(2,items.map(([,v])=>cut(v,32))),
+    new Uint8Array(4) // 終端
+  ]);
+  const len=body.length+2;
+  return u8concat([new Uint8Array([0xFF,0xE5,len>>8,len&255]),body]);
+}
+// 保存済みの写真も、書き出し時に最新の形式（Exif＋カメラメモ）で付け直す
+async function photoBytes(p){
+  let b=new Uint8Array(await p.blob.arrayBuffer()), r=b.subarray(2);
+  while(r[0]===0xFF&&[0xE0,0xE1,0xE5].includes(r[1])){ const l=(r[2]<<8)|r[3]; r=r.subarray(2+l); } // 古いAPP0/APP1/APP5を外す
+  return u8concat([new Uint8Array([0xFF,0xD8]),makeExif(p,new Date(p.ts)),r]);
 }
 function insertExif(jpg,app1){
   let rest=jpg.subarray(2);
@@ -2206,7 +2236,7 @@ $('#expXml').onclick=async()=>{
   const list=exportTargets(); if(!list.length){ toast('書き出す写真がありません'); return; }
   toast('作成中…');
   const files=[];
-  for(let i=0;i<list.length;i++){ const p=list[i]; p._file=`P${String(i+1).padStart(7,'0')}.JPG`; files.push({name:`PHOTO/PIC/${p._file}`,data:new Uint8Array(await p.blob.arrayBuffer()),date:new Date(p.ts)}); }
+  for(let i=0;i<list.length;i++){ const p=list[i]; p._file=`P${String(i+1).padStart(7,'0')}.JPG`; files.push({name:`PHOTO/PIC/${p._file}`,data:await photoBytes(p),date:new Date(p.ts)}); }
   files.unshift({name:`PHOTO/PHOTO${prefs.dtd}.DTD`,data:sjis(buildDtd())});
   files.unshift({name:'PHOTO/PHOTO.XML',data:sjis(buildPhotoXml(list))});
   download(makeZip(files),zipName('電子納品'));
@@ -2220,7 +2250,7 @@ $('#expDir').onclick=async()=>{
     const dir=[p.kubun,p.koushu||'工種なし',p.shubetsu||'種別なし',p.saibetsu].filter(Boolean).map(safeName).join('/');
     const d=new Date(p.ts), base=dotDate(d); // 同じ日の写真は 2026.10.23.jpg、2026.10.23_2.jpg … と連番
     let name=`${dir}/${base}.jpg`, n=2; while(used.has(name)) name=`${dir}/${base}_${n++}.jpg`; used.add(name);
-    files.push({name,data:new Uint8Array(await p.blob.arrayBuffer()),date:d});
+    files.push({name,data:await photoBytes(p),date:d});
   }
   files.push({name:'写真一覧.csv',data:csvBytes(list)});
   download(makeZip(files),zipName('工種別'));
@@ -2240,7 +2270,7 @@ function renderSet(){
   const p=proj(); $('#pjN').value=p.name; $('#pjS').value=p.sekou; $('#pjH').value=p.hacchu||'';
   $$('#qSeg button').forEach(b=>b.classList.toggle('on',b.dataset.q===prefs.quality));
   $('#optGuideOp').value=prefs.guideOp;
-  $('#optDtd').value=prefs.dtd; $('#optKijun').value=prefs.kijun;
+  $('#optDtd').value=prefs.dtd; $('#optKijun').value=prefs.kijun; $('#optRmeta').value=prefs.rmetaCs||'SJIS';
   if(navigator.storage?.estimate) navigator.storage.estimate().then(e=>{ $('#storeInfo').textContent=`写真はこの端末のブラウザ内に保存されます（使用量 約${Math.round((e.usage||0)/1048576)}MB）。こまめに書き出してください。`; }).catch(()=>{});
 }
 $('#pjSel').onchange=async e=>{ curPj=e.target.value; saveProjects(); await switchProject(); renderSet(); };
@@ -2251,6 +2281,7 @@ $$('#qSeg button').forEach(b=>b.onclick=()=>{ prefs.quality=b.dataset.q; savePre
 $('#optGuideOp').oninput=e=>{ prefs.guideOp=+e.target.value; savePrefs(); };
 $('#optDtd').onchange=e=>{ prefs.dtd=e.target.value; prefs.kijun=prefs.dtd==='04'?'土木201603-01':'土木202303-01'; savePrefs(); renderSet(); };
 $('#optKijun').oninput=e=>{ prefs.kijun=e.target.value; savePrefs(); };
+$('#optRmeta').onchange=e=>{ prefs.rmetaCs=e.target.value; savePrefs(); };
 $('#useNative').onclick=()=>$('#fileCap').click();
 $('#useImport').onclick=()=>$('#fileImp').click();
 $('#delExported').onclick=async()=>{ const ex=photos.filter(p=>p.exported); if(!ex.length){ toast('書き出し済みの写真はありません'); return; } if(!await askConfirm(`書き出し済みの写真 ${ex.length}枚 を端末から削除しますか？（書き出したZIPは残ります）`)) return; for(const p of ex) await DB.del(p.id); photos=photos.filter(p=>!p.exported); renderSet(); setLastThumb(); toast('削除しました'); };
