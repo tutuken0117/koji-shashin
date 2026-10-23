@@ -94,7 +94,7 @@ body.shooting .backcam{display:none}
 .view{padding-bottom:96px!important}
 /* メニュー */
 .modal.top{align-items:flex-start}
-.menusheet{border-radius:0 0 18px 18px;max-width:480px;padding-top:max(14px,env(safe-area-inset-top,0px))}
+.menusheet{border-radius:0 0 18px 18px;max-width:480px;padding-top:calc(env(safe-area-inset-top,0px) + 14px)}
 .menulist{display:flex;flex-direction:column;gap:6px}
 .menulist button{display:flex;align-items:center;gap:14px;min-height:56px;border:0;border-radius:12px;background:var(--bg);padding:8px 14px;font-size:17px;font-weight:700;text-align:left}
 .menulist button.on{background:var(--accent-soft);color:var(--accent)}
@@ -246,7 +246,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
 .dkchip.on{background:#ff8a3d}
 /* 黒板編集モード */
 .edpane{display:flex;flex-direction:column;width:100%;height:100%;background:#1b1f1d;color:#fff}
-.edtop{display:flex;align-items:center;gap:6px;padding:6px;padding-top:max(6px,env(safe-area-inset-top,0px));padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px));background:#141816;flex:none}
+.edtop{display:flex;align-items:center;gap:6px;padding:6px;padding-top:calc(env(safe-area-inset-top,0px) + 12px);padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px));background:#141816;flex:none}
 .edtitle{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.25}
 .edtitle b{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .edtitle span{font-size:12px;color:#9fd3b6}
@@ -276,7 +276,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
 .eddrop{position:absolute;z-index:8;background:#fff;color:#111;border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.5);display:flex;flex-direction:column;overflow:hidden}
 .eddrop .ddhd{padding:8px 12px;font-size:12px;font-weight:700;color:#555;background:#f1f3f2;border-bottom:1px solid #ddd}
 .eddrop .ddempty{padding:10px 12px;font-size:13px;color:#777}
-.eddrop .ddlist{overflow-y:auto;flex:1;min-height:0;-webkit-overflow-scrolling:touch}
+.eddrop .ddlist{overflow-y:auto;flex:1;min-height:min(96px,100%);-webkit-overflow-scrolling:touch}
 .eddrop .dditem{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid #eee;background:#fff;color:#111;font-size:17px;font-weight:700;padding:11px 14px}
 .eddrop .dditem.on{background:#e3f1e9;color:#1f6b47}
 .eddrop .dditem.edit{flex:none;color:#2f6fd6;font-size:14px;border-top:1px solid #ddd;border-bottom:0}
@@ -1377,7 +1377,7 @@ function renderWriteTab(){
         addInput(bl.label,k==='kouji'?p.name:k==='sekou'?(p.sekou||DEFAULT_SEKOU):(p.hacchu||''),v=>{ if(k==='kouji') p.name=v; else p[k]=v; saveProjects(); renderHeader(); boardChanged(); },{note:'（この工事の全写真で共通）',multi:k==='hacchu',ph:ph[k],pick:'p_'+k});
       } else addInput(bl.label,board.values[k],v=>{ board.values[k]=v; boardChanged(); },{ph:ph[k],pick:k});
     } else if(bl.t==='main'){
-      addInput('説明文（改行で2行）',bl.text,v=>{ bl.text=v; boardChanged(); },{multi:true,ph:'例：完　了',pick:'main'});
+      addInput('説明文（改行で2行）',bl.text,v=>{ bl.text=v; boardChanged(); },{multi:true,ph:'例：完了',pick:'main'});
     } else if(bl.t==='sketch'){
       box.insertAdjacentHTML('beforeend',`<label class="f">絵（略図）</label>`);
       const cv=document.createElement('canvas'); cv.className='skprev'; cv.width=480; cv.height=200; cv.title='タップして絵を描く';
@@ -1574,7 +1574,7 @@ const HY_WORDS={
   koushu:['草　刈　工'], shubetsu:['鉄塔敷地','巡視路'],
   'sokuten@鉄塔敷地':HY_TOWERS.map(n=>'No.'+n),
   'sokuten@巡視路':HY_SPANS,
-  main:['着　工　前','完　了']
+  main:['着工前','完了']
 };
 // どの工事でも使える一般的な候補（表の測定項目など）
 const GEN_WORDS={
@@ -1592,6 +1592,7 @@ function loadWords(){
     const old=LS.get('wordLists',null); w=(old&&isHY())?old:{};
   }
   if(isHY()){ const p=projects.find(x=>x.id===curPj); if(p&&!p.hy){ p.hy=true; saveProjects(); } }
+  if(isHY()&&!w._v3){ delete w.main; w._v3=true; } // 説明文の候補を「着工前」「完了」に
   if(isHY()&&!w._v2){ // 東山口の候補を指定どおりに整理（工種・種別・説明文は指定の候補だけ、細別・側溝清掃はなし）
     ['koushu','shubetsu','main','saibetsu','sokuten@巡視路側溝清掃'].forEach(k=>delete w[k]); w._v2=true;
   }
@@ -1641,7 +1642,9 @@ const ED={g:null,sel:-1,cell:null,dpr:1};
 function openEditMode(){ ED.sel=-1; ED.cell=null; stopCam(); openModal('mEdit'); requestAnimationFrame(()=>{ renderEdit(); }); }
 function closeEditMode(){ commitInline(); closeModal('mEdit'); if(ED.photo){ finishPhotoEdit(); return; } saveBoard(); renderShootInfo(); if(curView==='shoot'&&!document.hidden) startCam(); }
 function renderEdit(){
-  const wrap=$('#edWrap'), cv=$('#edCanvas'); const r={width:wrap.clientWidth,height:wrap.clientHeight}; if(!r.width) return;
+  const wrap=$('#edWrap'), cv=$('#edCanvas');
+  cv.style.width='0px'; cv.style.height='0px'; // 前の大きさが残って画面がはみ出さないように、いったん縮めてから測る
+  const r={width:wrap.clientWidth,height:wrap.clientHeight}; if(!r.width) return;
   const dpr=Math.min(2,window.devicePixelRatio||1); ED.dpr=dpr;
   cv.style.width=r.width+'px'; cv.style.height=r.height+'px'; cv.width=Math.round(r.width*dpr); cv.height=Math.round(r.height*dpr);
   const ctx=cv.getContext('2d'); ctx.fillStyle='#2a302d'; ctx.fillRect(0,0,cv.width,cv.height);
@@ -1692,9 +1695,13 @@ function renderPkButtons(){
   });
 }
 // プルダウン（▽の下に候補を並べる）
-function closeDrop(){ const d=$('#edDrop'); if(d) d.hidden=true; }
+function closeDrop(){ const d=$('#edDrop'); if(d) d.hidden=true; ED.dropHk=null; }
+const hkOf=x=>x.k+x.bi+'_'+(x.r??'')+'_'+(x.c??'');
+// 画面の大きさが変わったら、開いているプルダウンを新しい▽の位置に出し直す
+function reopenDrop(){ if(!ED.dropHk||!ED.g) return; const hk=ED.dropHk, h=ED.g.hits.find(x=>hkOf(x)===hk), b=[...$('#edPkBox').children].find(x=>x.dataset.hk===hk); if(h&&b) openDrop(h,b); else closeDrop(); }
 function openDrop(h,btn){
   const dd=$('#edDrop'), k=pickKeyFor(h), bl=board.blocks[h.bi]; if(!k) return;
+  ED.dropHk=hkOf(h);
   const label=h.k==='main'?'説明文':h.k==='cell'?(bl.head[0]||'項目'):(bl.label||'項目');
   const list=wordsOf(k), cur=fieldGet(h);
   dd.innerHTML=`<div class="ddhd">${esc(listTitle(bl.key,label))}</div>`+(list.length?'':`<div class="ddempty">${bl.key==='sokuten'&&board.values.shubetsu?'この種別の撮影箇所はまだ登録されていません':'候補がまだありません'}</div>`);
@@ -1705,8 +1712,11 @@ function openDrop(h,btn){
   dd.hidden=false;
   const W=$('#edWrap').clientWidth, H=$('#edWrap').clientHeight, bx=btn.offsetLeft, by=btn.offsetTop, bh=btn.offsetHeight;
   const w=Math.min(260,W-16); dd.style.width=w+'px'; dd.style.left=clamp(bx+btn.offsetWidth-w,8,W-w-8)+'px';
-  const below=H-(by+bh)-8, above=by-8; dd.style.maxHeight=Math.max(below,above)+'px';
-  if(below>=Math.min(260,above)){ dd.style.top=(by+bh+4)+'px'; dd.style.bottom=''; } else { dd.style.top=''; dd.style.bottom=(H-by+4)+'px'; }
+  const need=Math.min(40+Math.min(list.length,4)*48+46, H-16); // 見出し＋候補（最大4つ分）＋登録ボタン
+  const below=H-(by+bh)-8, above=by-8;
+  if(below>=need){ dd.style.top=(by+bh+4)+'px'; dd.style.bottom=''; dd.style.maxHeight=below+'px'; }
+  else if(above>=need){ dd.style.top=''; dd.style.bottom=(H-by+4)+'px'; dd.style.maxHeight=above+'px'; }
+  else { dd.style.top='8px'; dd.style.bottom=''; dd.style.maxHeight=(H-16)+'px'; }
   const on=ul.querySelector('.on'); if(on) on.scrollIntoView({block:'center'});
 }
 // マスの上に入力欄を出して、その場で書き換える
@@ -1859,6 +1869,8 @@ $('#edLwUp').onclick=()=>edLw(0.02); $('#edLwDn').onclick=()=>edLw(-0.02);
 $('#edHide').onclick=()=>{ const t=board.blocks[ED.sel]; t.hide=true; ED.sel=-1; ED.cell=null; saveBoard(); renderEdit(); renderShootInfo(); toast((t.t==='sketch'?'絵':'表')+'を隠しました。撮影画面左のボタンや「＋'+(t.t==='sketch'?'絵':'表')+'」でまた表示できます',2600); };
 $('#edDate').onclick=()=>{ const t=board.blocks[ED.sel]; t.date=t.date===false; saveBoard(); renderEdit(); };
 window.addEventListener('resize',()=>{ if($('#mEdit').classList.contains('on')) renderEdit(); });
+if(window.ResizeObserver){ let roT=null; new ResizeObserver(()=>{ if(!$('#mEdit').classList.contains('on')) return; clearTimeout(roT); roT=setTimeout(()=>{ renderEdit(); reopenDrop(); },60); }).observe($('#edWrap')); }
+window.addEventListener('orientationchange',()=>[300,800].forEach(ms=>setTimeout(()=>{ if($('#mEdit').classList.contains('on')){ closeDrop(); renderEdit(); } },ms)));
 function fillDatalists(){
   ['koushu','shubetsu','saibetsu'].forEach(k=>{
     const id={koushu:'dlKoushu',shubetsu:'dlShubetsu',saibetsu:'dlSaibetsu'}[k];
