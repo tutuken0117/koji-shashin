@@ -86,7 +86,6 @@ body.shooting header{display:none}
 .rotate small{font-size:14px;color:#cfd8d3;line-height:1.6}
 @keyframes rot{0%,30%{transform:rotate(0)}60%,100%{transform:rotate(-90deg)}}
 @media (prefers-reduced-motion:reduce){.rotate .ph{animation:none}}
-@media (orientation:portrait){ .rotate{display:flex} }
 .backcam{position:fixed;right:max(18px,env(safe-area-inset-right,0px));bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:40;display:flex;align-items:center;gap:8px;border:0;border-radius:40px;background:var(--accent);color:var(--accent-ink);font-size:22px;font-weight:700;padding:12px 22px 12px 18px;box-shadow:0 4px 16px rgba(0,0,0,.3)}
 .backcam span{font-size:16px}
 body.shooting .backcam{display:none}
@@ -301,6 +300,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
         <button class="lbtn" id="tgSketch" aria-pressed="true"><span class="ic">✏️</span>絵</button>
         <button class="lbtn" id="tgTable" aria-pressed="true"><span class="ic">▦</span>表</button>
         <button class="lbtn" id="tgGuide" aria-pressed="false"><span class="ic">◐</span>着工前を重ねる</button>
+        <button class="lbtn" id="tgFlip" hidden><span class="ic">⟲</span>上下反転</button>
       </div>
       <div class="sbar sbottom">
         <div class="shutterrow">
@@ -437,7 +437,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
       <div class="edgrp sel" id="edSel" hidden>
         <div class="edselname" id="edSelName"></div>
         <div class="edtxt" id="edTxt"><span>文字</span><button class="edb" id="edFsDn" aria-label="文字を小さく">A－</button><button class="edb" id="edFsUp" aria-label="文字を大きく">A＋</button></div>
-        <div class="edtxt" id="edAl"><span>位置</span><button class="edb" data-al="left">左</button><button class="edb" data-al="center">中</button><button class="edb" data-al="right">右</button></div>
+        <div class="edtxt" id="edAl"><span>配置</span><button class="edb" data-al="left">左</button><button class="edb" data-al="center">中</button><button class="edb" data-al="right">右</button><button class="edb" data-al="justify">均等</button></div><div class="edtxt" id="edInd"><span>字下げ（インデント）</span><button class="edb" id="edIndDn" aria-label="字下げを減らす">◀ 減</button><button class="edb" id="edIndUp" aria-label="字下げを増やす">増 ▶</button></div>
         <div class="edtxt" id="edLw"><span>項目名の幅</span><button class="edb" id="edLwDn" aria-label="項目名の欄を狭く">◀</button><button class="edb" id="edLwUp" aria-label="項目名の欄を広く">▶</button></div>
         <button class="edb hi" id="edPick">候補から選ぶ ▼</button>
         <button class="edb" id="edDraw">✏️ 絵を描く</button>
@@ -505,6 +505,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
   <table class="meta" id="dtMeta"></table>
   <div class="btns">
     <button class="btn" id="dtRep">⭐ 代表写真にする</button>
+    <button class="btn pri" id="dtFix">✏️ 黒板の文字を直す</button>
     <button class="btn" id="dtReuse">この黒板で続けて撮る</button>
     <button class="btn" id="dtSave">端末に保存</button>
     <button class="btn danger" id="dtDel">削除</button>
@@ -530,6 +531,8 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
   <div class="note">💡 <b>着工前と完成の対比</b>：完成を撮るとき「着工前を重ねる」をオンにすると、同じ測点の着工前写真が半透明で表示されます。同じ角度で撮れば「対比」画面できれいに並びます。</div>
   <div class="note" style="margin-top:8px">📷 <b>起動のたびに「カメラの許可」が出る場合</b>：iPhoneは「設定」→「アプリ」→「Safari」→「カメラ」を「許可」にしてください。Androidは一度「許可」すれば次からは出ません。</div>
   <div class="note" style="margin-top:8px">📲 <b>上のアドレス欄を消して全画面で使うには</b>：iPhoneはSafariの共有ボタン →「ホーム画面に追加」、Androidはメニュー（︙）→「ホーム画面に追加」または「アプリをインストール」。ホーム画面のアイコンから開くと全画面になります。</div>
+  <div class="note" style="margin-top:8px">✏️ <b>撮影後に黒板の文字を直すには</b>：メニュー →「撮影した写真」→ 写真を選んで「黒板の文字を直す」。電子納品しない写真での利用を想定しています。電子納品で提出する写真の黒板を変える場合は、発注者と協議のうえ行ってください。</div>
+  <div class="note" style="margin-top:8px">🔄 <b>縦向きに持ったまま開いた場合</b>：画面が横向きの配置で表示されます。上下が逆さまなら、左の「上下反転」を押してください。</div>
   <div class="note" style="margin-top:8px">📤 撮り終わったら「書き出し」→「電子納品形式」でZIPを作り、写管屋に取り込みます。</div>
   <div class="sticky-go"><button class="btn pri block" data-close>はじめる</button></div>
 </div></div>
@@ -784,7 +787,8 @@ function loadBoard(){
   }
   board.blocks=normalizeBlocks(board.blocks);
 }
-function saveBoard(){ LS.set('board_'+curPj, board); }
+let PROJ_OVR=null, DATE_OVR=null;  // 撮影済み写真の黒板を直しているときの工事名など・撮影日
+function saveBoard(){ if(ED&&ED.photo) return; LS.set('board_'+curPj, board); }
 function savePrefs(){ LS.set('prefs', prefs); }
 function saveProjects(){ LS.set('projects',projects); LS.set('curPj',curPj); }
 
@@ -793,9 +797,10 @@ function toast(msg,ms=1600){ const t=$('#toast'); t.textContent=msg; t.classList
 /* ===================== 黒板の描画 ===================== */
 function rowValue(b,r,d){
   const k=r.key||'free';
-  if(k==='kouji') return proj().name||'';
-  if(k==='sekou') return proj().sekou||DEFAULT_SEKOU;
-  if(k==='hacchu') return proj().hacchu||'';
+  const P=PROJ_OVR||proj();
+  if(k==='kouji') return P.name||'';
+  if(k==='sekou') return P.sekou||DEFAULT_SEKOU;
+  if(k==='hacchu') return P.hacchu||'';
   if(k==='date') return fmtDate(d||new Date());
   if(k==='free') return r.value||'';
   return b.values[k]||'';
@@ -820,9 +825,9 @@ function layout(b,W,H,d){
       let h=v.includes('\n')?rh*1.6:rh;
       if(D.layout==='labeltop') h*=1.32;
       if(D.layout==='title'&&bl.key==='kouji') h=rh*1.3;
-      return {t:'row',bi,key:bl.key,label:bl.label||'',value:v,h,fs:bl.fs||1,lfs:bl.lfs||1,al:bl.al||'center'};
+      return {t:'row',bi,key:bl.key,label:bl.label||'',value:v,h,fs:bl.fs||1,lfs:bl.lfs||1,al:bl.al||'center',ind:bl.ind||0,lal:bl.lal||'',lind:bl.lind||0};
     }
-    if(bl.t==='main') return {t:'main',bi,text:bl.text||'',date:bl.date!==false,h:0,fs:bl.fs||1,al:bl.al||'center'};
+    if(bl.t==='main') return {t:'main',bi,text:bl.text||'',date:bl.date!==false,h:0,fs:bl.fs||1,al:bl.al||'center',ind:bl.ind||0};
     if((bl.t==='table'||bl.t==='sketch')&&bl.hide) return null; // 非表示にした絵・表
     if(bl.t==='table') return {t:'table',bi,head:bl.head||['','',''],rows:bl.rows||[],diff:!!bl.diff,h:0,fs:bl.fs||1};
     if(bl.t==='sketch') return {t:'sketch',bi,shapes:bl.shapes||[],h:0};
@@ -873,6 +878,24 @@ function fitText(ctx,s,x,y,maxW,fs,align,bold){
   else ctx.fillText(s,x,y);
 }
 // 均等割り付け（「工 事 名」のように文字の間をあけて中央にそろえる）
+// 均等割り付け：文字を左右いっぱいに等間隔で並べる
+function justifyText(ctx,s,x0,x1,cy,fs){
+  const ch=[...String(s||'')]; if(!ch.length) return;
+  ctx.font=`700 ${fs}px ${FONT}`; ctx.textAlign='left';
+  if(ch.length===1){ ctx.textAlign='center'; ctx.fillText(ch[0],(x0+x1)/2,cy); return; }
+  const ws=ch.map(c=>ctx.measureText(c).width), sum=ws.reduce((a,b)=>a+b,0), span=x1-x0;
+  if(sum>=span){ fitText(ctx,s,x0,cy,span,fs,'left',true); return; }
+  const gap=(span-sum)/(ch.length-1); let x=x0;
+  ch.forEach((c,i)=>{ ctx.fillText(c,x,cy); x+=ws[i]+gap; });
+}
+// 文字の配置（左・中央・右・均等）と字下げ（ind：文字数ぶん）
+function alignText(ctx,s,al,x0,x1,cy,fs,ind,pad,bold){
+  const i=(ind||0)*fs, a=x0+pad+(al==='right'?0:i), b=x1-pad-(al==='left'?0:i);
+  if(al==='justify') return justifyText(ctx,s,a,b,cy,fs);
+  if(al==='left') return fitText(ctx,s,a,cy,b-a,fs,'left',bold);
+  if(al==='right') return fitText(ctx,s,b,cy,b-a,fs,'right',bold);
+  fitText(ctx,s,(a+b)/2,cy,b-a,fs,'center',bold);
+}
 function spreadText(ctx,s,cx,cy,maxW,fs){
   s=String(s||''); const n=[...s].length;
   ctx.font=`700 ${fs}px ${FONT}`;
@@ -931,13 +954,14 @@ function drawBoard(ctx,b,W,H,d){
     }
     if(!plain){ ctx.lineWidth=thin; ln(ix+lw,yy,ix+lw,yy+r.h); }
     ctx.fillStyle=D.lab;
-    if(plain) fitText(ctx,r.label,ix+rh*0.3,yy+r.h/2,lw-rh*0.4,rh*0.42,'left',true);
+    if(plain) fitText(ctx,r.label,ix+rh*0.3,yy+r.h/2,lw-rh*0.4,rh*0.42*r.lfs,'left',true);
+    else if(r.lal) alignText(ctx,r.label,r.lal,ix,ix+lw,yy+r.h/2,rh*0.44*r.lfs,r.lind,rh*0.2,true); // 項目名の配置を変えたとき
     else spreadText(ctx,r.label,ix+lw/2,yy+r.h/2,lw*0.82,rh*0.44*r.lfs);
     ctx.fillStyle=D.fg;
     const lines=String(r.value).split('\n');
-    const al=plain?'left':r.al, vx= al==='left'?ix+lw+rh*0.25 : al==='right'?ix+iw-rh*0.25 : ix+lw+vw/2;
-    if(lines.length>1) lines.slice(0,2).forEach((s,i)=>fitText(ctx,s,vx,yy+r.h*(i===0?0.3:0.72),vw*0.92,rh*0.42*r.fs,al,true));
-    else fitText(ctx,r.value,vx,yy+r.h/2,vw*0.92,Math.min(r.h*0.9,rh*0.48*r.fs),al,true);
+    const al=plain?'left':r.al;
+    if(lines.length>1) lines.slice(0,2).forEach((s,i)=>alignText(ctx,s,al,ix+lw,ix+iw,yy+r.h*(i===0?0.3:0.72),rh*0.42*r.fs,r.ind,rh*0.25,true));
+    else alignText(ctx,r.value,al,ix+lw,ix+iw,yy+r.h/2,Math.min(r.h*0.9,rh*0.48*r.fs),r.ind,rh*0.25,true);
     hit('label',r.bi,ix,yy,lw,r.h); hit('value',r.bi,ix+lw,yy,vw,r.h);
     yy+=r.h;
   };
@@ -976,8 +1000,8 @@ function drawBoard(ctx,b,W,H,d){
     } else {
       if(it.text){
         const lines=it.text.split('\n').slice(0,2);
-        const fs=(lines.length>1?rh*0.85:rh*1.3)*it.fs; const mx= it.al==='left'?ix+iw*0.05 : it.al==='right'?ix+iw*0.95 : ix+iw/2, ma= it.al==='left'?'left':it.al==='right'?'right':'center';
-        lines.forEach((s,i)=>{ const cy=yy+it.h*(lines.length>1?(i?0.6:0.3):(it.date?0.44:0.5)); if(ma==='center'&&[...s].length<=4&&!s.includes(' ')) spreadText(ctx,s,mx,cy,iw*0.62,fs); else fitText(ctx,s,mx,cy,iw*0.88,fs,ma,true); });
+        const fs=(lines.length>1?rh*0.85:rh*1.3)*it.fs; const mx= it.al==='left'?ix+iw*0.05 : it.al==='right'?ix+iw*0.95 : ix+iw/2, ma= it.al==='left'?'left':it.al==='right'?'right':'center'; const mx0=ix+rh*0.3+(it.ind||0)*fs*0.5, mx1=ix+iw-rh*0.3-(it.ind||0)*fs*0.5;
+        lines.forEach((s,i)=>{ const cy=yy+it.h*(lines.length>1?(i?0.6:0.3):(it.date?0.44:0.5)); if(it.al==='justify') justifyText(ctx,s,mx0,mx1,cy,fs); else if(it.al==='left') fitText(ctx,s,mx0,cy,mx1-mx0,fs,'left',true); else if(it.al==='right') fitText(ctx,s,mx1,cy,mx1-mx0,fs,'right',true); else if([...s].length<=4&&!s.includes(' ')) spreadText(ctx,s,mx,cy,iw*0.62,fs); else fitText(ctx,s,mx,cy,iw*0.88,fs,ma,true); });
       }
       if(it.date) fitText(ctx,fmtDate(d||new Date()),ix+iw-rh*0.3,yy+it.h-rh*0.42,iw*0.6,rh*0.44,'right',true);
     }
@@ -1019,25 +1043,29 @@ $('#v-shoot').addEventListener('pointerdown',()=>{ if(idleStopped){ idleStopped=
 // カメラ映像はその枠と写真の範囲がぴったり重なるように拡大して画面全体に表示する
 let curCrop=null;
 function fitCam(){
-  const R=$('#v-shoot').getBoundingClientRect(); if(!R.width) return;
+  const vs=$('#v-shoot'), R={width:vs.clientWidth,height:vs.clientHeight}; if(!R.width) return;
   const ar=4/3; // 撮影は横向き専用
   let fw=R.width, fh=fw/ar; if(fh>R.height){ fh=R.height; fw=fh*ar; }
   const fx=(R.width-fw)/2, fy=(R.height-fh)/2;
   Object.assign(cam.style,{left:fx+'px',top:fy+'px',width:fw+'px',height:fh+'px'});
   curCrop=null;
   if(camReady&&video.videoWidth){
-    const vw=video.videoWidth, vh=video.videoHeight;
+    const vw0=video.videoWidth, vh0=video.videoHeight;
+    const rot = ROT && vh0>vw0 ? ROT : 0;          // 画面を回して表示しているときは、映像を逆に回して向きを合わせる
+    const vw= rot?vh0:vw0, vh= rot?vw0:vh0;
     let cw=vw, ch=vw/ar; if(ch>vh){ ch=vh; cw=vh*ar; }
     const cx=(vw-cw)/2, cy=(vh-ch)/2, s=fw/cw;
-    Object.assign(video.style,{objectFit:'fill',left:(fx-cx*s)+'px',top:(fy-cy*s)+'px',width:(vw*s)+'px',height:(vh*s)+'px'});
-    curCrop={sx:cx,sy:cy,sw:cw,sh:ch};
+    if(!rot) Object.assign(video.style,{objectFit:'fill',transform:'',left:(fx-cx*s)+'px',top:(fy-cy*s)+'px',width:(vw*s)+'px',height:(vh*s)+'px'});
+    else { const mx=fx-cx*s+vw*s/2, my=fy-cy*s+vh*s/2;
+      Object.assign(video.style,{objectFit:'fill',transform:'rotate('+(-rot)+'deg)',left:(mx-vw0*s/2)+'px',top:(my-vh0*s/2)+'px',width:(vw0*s)+'px',height:(vh0*s)+'px'}); }
+    curCrop={sx:cx,sy:cy,sw:cw,sh:ch,rot};
   }
   drawOverlay();
 }
 video.addEventListener('resize',()=>fitCam());
 let lastG=null, hintUntil=0;
 function drawOverlay(){
-  const r=cam.getBoundingClientRect(); if(!r.width) return;
+  const r={width:cam.clientWidth,height:cam.clientHeight}; if(!r.width) return;
   const dpr=Math.min(2,window.devicePixelRatio||1);
   overlay.width=Math.round(r.width*dpr); overlay.height=Math.round(r.height*dpr);
   const ctx=overlay.getContext('2d'); ctx.clearRect(0,0,overlay.width,overlay.height);
@@ -1049,15 +1077,15 @@ function drawOverlay(){
 (function(){
   let drag=null;
   overlay.addEventListener('pointerdown',e=>{
-    if(!lastG) return; const r=overlay.getBoundingClientRect(); const k=overlay.width/r.width;
-    const px=(e.clientX-r.left)*k, py=(e.clientY-r.top)*k;
-    if(px>=lastG.x&&px<=lastG.x+lastG.w&&py>=lastG.y&&py<=lastG.y+lastG.h){ drag={dx:px-lastG.x,dy:py-lastG.y,k,r,sx:e.clientX,sy:e.clientY,moved:false,py}; overlay.setPointerCapture(e.pointerId); }
+    if(!lastG) return; const k=overlay.width/overlay.clientWidth; const [lx,ly]=localXY(e,overlay);
+    const px=lx*k, py=ly*k;
+    if(px>=lastG.x&&px<=lastG.x+lastG.w&&py>=lastG.y&&py<=lastG.y+lastG.h){ drag={dx:px-lastG.x,dy:py-lastG.y,k,sx:e.clientX,sy:e.clientY,moved:false,py}; overlay.setPointerCapture(e.pointerId); }
   });
   overlay.addEventListener('pointermove',e=>{
     if(!drag) return;
     if(!drag.moved&&Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)<10) return;
     drag.moved=true; $('#dragHint').style.display='none';
-    const px=(e.clientX-drag.r.left)*drag.k, py=(e.clientY-drag.r.top)*drag.k;
+    const [lx,ly]=localXY(e,overlay), px=lx*drag.k, py=ly*drag.k;
     board.x=clamp((px-drag.dx)/overlay.width,0,1); board.y=clamp((py-drag.dy)/overlay.height,0,1); drawOverlay();
   });
   const end=()=>{
@@ -1070,7 +1098,27 @@ function drawOverlay(){
 })();
 
 function outSize(){ const L=QUALITY[prefs.quality]||1280; return {W:L,H:Math.round(L*3/4)}; } // 常に横長
-const isPortrait=()=>window.innerHeight>window.innerWidth;
+const isPortrait=()=>ROT===0&&window.innerHeight>window.innerWidth;
+/* ===================== 縦持ちでも横向きの画面にする =====================
+   スマホが縦向き（画面の向きロック中など）でも、画面全体を90°回して横向きレイアウトで表示する。
+   ROT=90：スマホの上側を左に倒して持つ（標準）／ROT=-90：右に倒して持つ（「上下反転」ボタン） */
+let ROT=0;
+function applyRotation(){
+  const W=window.innerWidth, H=window.innerHeight, want=H>W?(prefs.flip?-90:90):0, b=document.body.style;
+  if(want===0){ b.position=''; b.left=''; b.top=''; b.width=''; b.height=''; b.transform=''; b.transformOrigin=''; }
+  else { Object.assign(b,{position:'fixed',left:'0',top:'0',width:H+'px',height:W+'px',transformOrigin:'0 0',
+    transform: want===90?`translateX(${W}px) rotate(90deg)`:`translateY(${H}px) rotate(-90deg)`}); }
+  const changed=ROT!==want; ROT=want;
+  if($('#tgFlip')) $('#tgFlip').hidden=ROT===0;
+  return changed;
+}
+// 画面上の指の位置を、回した画面の中での位置（要素の左上からのpx）に直す
+function localXY(e,el){
+  const r=el.getBoundingClientRect(), cx=e.clientX, cy=e.clientY;
+  if(ROT===90) return [cy-r.top, r.right-cx];
+  if(ROT===-90) return [r.bottom-cy, cx-r.left];
+  return [cx-r.left, cy-r.top];
+}
 function drawCover(ctx,src,sw,sh,W,H){
   const a=W/H; let cw=sw, ch=sw/a; if(ch>sh){ ch=sh; cw=sh*a; }
   ctx.drawImage(src,(sw-cw)/2,(sh-ch)/2,cw,ch,0,0,W,H);
@@ -1101,15 +1149,22 @@ async function composePhoto(src,sw,sh,crop){
   const d=new Date(); const {W,H}=crop?outSize(crop.sw,crop.sh):outSize(sw,sh);
   const c=document.createElement('canvas'); c.width=W; c.height=H;
   const ctx=c.getContext('2d');
+  if(crop&&crop.rot){ // 回して表示していたときは、映像を同じ向きに回してから切り出す
+    const tc=document.createElement('canvas'); tc.width=sh; tc.height=sw; const tx=tc.getContext('2d');
+    if(crop.rot===90){ tx.translate(0,sw); tx.rotate(-Math.PI/2); } else { tx.translate(sh,0); tx.rotate(Math.PI/2); }
+    tx.drawImage(src,0,0); src=tc;
+  }
   if(crop) ctx.drawImage(src,crop.sx,crop.sy,crop.sw,crop.sh,0,0,W,H); else drawCover(ctx,src,sw,sh,W,H);
+  const rawImg=await canvasToBlob(c,0.85);  // 黒板を入れる前の写真
   drawBoard(ctx,board,W,H,d);
   const meta=buildMeta(d,W,H);
+  const pj=PROJ_OVR||proj(); const snap=JSON.parse(JSON.stringify(board)); snap._proj={name:pj.name||'',hacchu:pj.hacchu||'',sekou:pj.sekou||DEFAULT_SEKOU};
   const raw=new Uint8Array(await (await canvasToBlob(c,0.88)).arrayBuffer());
   const blob=new Blob([insertExif(raw,makeExif(meta,d))],{type:'image/jpeg'});
   const tc=document.createElement('canvas'); tc.width=W>H?320:240; tc.height=W>H?240:320;
   tc.getContext('2d').drawImage(c,0,0,tc.width,tc.height);
   const thumb=await canvasToBlob(tc,0.75);
-  return {...meta,blob,thumb};
+  return {...meta,blob,thumb,rawImg,board:snap};
 }
 async function storePhoto(p){
   await DB.put(p); photos.push(p); sessionCount++;
@@ -1202,6 +1257,8 @@ function setLastThumb(){ const p=photos.slice().sort((a,b)=>b.ts-a.ts)[0]; $('#l
 function objUrl(p,k){ const key=p.id+k; if(!urlCache.has(key)) urlCache.set(key,URL.createObjectURL(p[k])); return urlCache.get(key); }
 
 $('#menuBtn').onclick=()=>openMenu();
+// 縦持ちのまま画面を回しているとき、持つ向きが逆なら上下を入れ替える
+$('#tgFlip').onclick=()=>{ prefs.flip=!prefs.flip; savePrefs(); applyRotation(); fitCam(); };
 $('#tgGuide').onclick=()=>{ prefs.guide=!prefs.guide; savePrefs(); renderShootInfo(); };
 // 絵・表をワンタップで表示／非表示（中身は消えずに残る）
 $('#tgSketch').onclick=()=>{ const b=board.blocks.find(x=>x.t==='sketch'); if(!b) return; b.hide=!b.hide; saveBoard(); renderShootInfo(); toast(b.hide?'絵を隠しました':'絵を表示しました',900); };
@@ -1224,7 +1281,7 @@ function drawBoardFit(cv,b,pad=12,bg=true){
   if(bg) previewBg(ctx,W,H); else ctx.clearRect(0,0,W,H);
   if(b.none||!b.blocks||!b.blocks.length){ ctx.fillStyle='#fff'; ctx.font=`700 ${Math.min(W,H)*0.09}px ${FONT}`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('黒板なし（写真のみ）',W/2,H/2); return null; }
   const r=boardRatio(b); const bw=Math.min(W-2*pad,(H-2*pad)/r), h=bw*r;
-  return drawBoard(ctx,{...b,bwPx:bw,x:(W-bw)/2/W,y:(H-h)/2/H},W,H,new Date());
+  return drawBoard(ctx,{...b,bwPx:bw,x:(W-bw)/2/W,y:(H-h)/2/H},W,H,DATE_OVR||new Date());
 }
 function drawBoardOnly(cv,b){ drawBoardFit(cv,b); }
 function renderBoardPreview(){ drawBoardOnly($('#bPrev'),board); }
@@ -1384,7 +1441,7 @@ function openSketch(block){
   openModal('mSketch'); setSkTool(SK.tool); requestAnimationFrame(fitSketch);
 }
 function fitSketch(){
-  const wrap=$('#skWrap').getBoundingClientRect(), cv=$('#skCanvas');
+  const sw_=$('#skWrap'), wrap={width:sw_.clientWidth,height:sw_.clientHeight}, cv=$('#skCanvas');
   let w=wrap.width, h=w/SK_AR; if(h>wrap.height){ h=wrap.height; w=h*SK_AR; }
   cv.style.width=w+'px'; cv.style.height=h+'px';
   const dpr=Math.min(2,window.devicePixelRatio||1); cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr);
@@ -1401,7 +1458,7 @@ function drawSketchEditor(){
 }
 function setSkTool(t){ SK.tool=t; $$('#skTools [data-tool]').forEach(b=>b.classList.toggle('on',b.dataset.tool===t)); $('#skText').hidden=!(t==='text'||t==='dim'); $('#skText').placeholder=t==='dim'?'寸法の文字（例：B=300）を入れてから線を引く（空でも可）':'書く文字（例：B=300）→ 置きたい場所をタップ'; if(t==='text') setTimeout(()=>$('#skText').focus(),50); }
 function skPush(){ SK.undo.push(JSON.stringify(SK.shapes)); if(SK.undo.length>50) SK.undo.shift(); }
-function skPos(e){ const r=$('#skCanvas').getBoundingClientRect(); return [clamp((e.clientX-r.left)/r.width,0,1), clamp((e.clientY-r.top)/r.height,0,1)]; }
+function skPos(e){ const cv=$('#skCanvas'), [lx,ly]=localXY(e,cv); return [clamp(lx/cv.clientWidth,0,1), clamp(ly/cv.clientHeight,0,1)]; }
 function skHit(p){ // いちばん近い図形を探す（消しゴム用）
   const d2=(a,b)=>((a[0]-b[0])*SK_AR)**2+(a[1]-b[1])**2;
   const seg=(p,a,b)=>{ const ax=a[0]*SK_AR,ay=a[1],bx=b[0]*SK_AR,by=b[1],px=p[0]*SK_AR,py=p[1]; const l=(bx-ax)**2+(by-ay)**2; let t=l?((px-ax)*(bx-ax)+(py-ay)*(by-ay))/l:0; t=clamp(t,0,1); return (px-ax-t*(bx-ax))**2+(py-ay-t*(by-ay))**2; };
@@ -1511,9 +1568,9 @@ function toggleDekigata(){
 /* ===================== 黒板編集モード（黒板を拡大して直接書き換える） ===================== */
 const ED={g:null,sel:-1,cell:null,dpr:1};
 function openEditMode(){ ED.sel=-1; ED.cell=null; stopCam(); openModal('mEdit'); requestAnimationFrame(()=>{ renderEdit(); }); }
-function closeEditMode(){ commitInline(); closeModal('mEdit'); saveBoard(); renderShootInfo(); if(curView==='shoot'&&!document.hidden) startCam(); }
+function closeEditMode(){ commitInline(); closeModal('mEdit'); if(ED.photo){ finishPhotoEdit(); return; } saveBoard(); renderShootInfo(); if(curView==='shoot'&&!document.hidden) startCam(); }
 function renderEdit(){
-  const wrap=$('#edWrap'), cv=$('#edCanvas'); const r=wrap.getBoundingClientRect(); if(!r.width) return;
+  const wrap=$('#edWrap'), cv=$('#edCanvas'); const r={width:wrap.clientWidth,height:wrap.clientHeight}; if(!r.width) return;
   const dpr=Math.min(2,window.devicePixelRatio||1); ED.dpr=dpr;
   cv.style.width=r.width+'px'; cv.style.height=r.height+'px'; cv.width=Math.round(r.width*dpr); cv.height=Math.round(r.height*dpr);
   const ctx=cv.getContext('2d'); ctx.fillStyle='#2a302d'; ctx.fillRect(0,0,cv.width,cv.height);
@@ -1521,7 +1578,7 @@ function renderEdit(){
   if(!ED.g){ ctx.fillStyle='#fff'; ctx.font=`700 ${18*dpr}px ${FONT}`; ctx.textAlign='center'; ctx.fillText('「黒板を写さない」になっています（分類で変更）',cv.width/2,cv.height/2); }
   // 選んでいる項目を枠で示す
   if(ED.g&&ED.sel>=0){ const it=ED.g.items.find(i=>i.bi===ED.sel); if(it){ ctx.save(); ctx.strokeStyle='#ffb02e'; ctx.lineWidth=3*dpr; ctx.setLineDash([8*dpr,5*dpr]); ctx.strokeRect(it.rect[0]+2,it.rect[1]+2,it.rect[2]-4,it.rect[3]-4); ctx.restore(); } }
-  $('#edName').textContent=board.pname||'カスタム';
+  $('#edName').textContent=ED.photo?'撮影済み写真の黒板を修正中':(board.pname||'カスタム');
   renderEdSide();
 }
 function edHitAt(px,py){
@@ -1531,7 +1588,7 @@ function edHitAt(px,py){
 }
 $('#edCanvas').addEventListener('click',e=>{
   commitInline();
-  const r=$('#edCanvas').getBoundingClientRect(), px=(e.clientX-r.left)*ED.dpr, py=(e.clientY-r.top)*ED.dpr;
+  const [lx,ly]=localXY(e,$('#edCanvas')), px=lx*ED.dpr, py=ly*ED.dpr;
   const h=edHitAt(px,py);
   if(!h){ ED.sel=-1; ED.cell=null; renderEdit(); return; }
   ED.sel=h.bi; ED.cell=h; renderEdit();
@@ -1543,7 +1600,7 @@ $('#edCanvas').addEventListener('click',e=>{
 });
 // マスの上に入力欄を出して、その場で書き換える
 function fieldGet(h){
-  const bl=board.blocks[h.bi], p=projects.find(p=>p.id===curPj);
+  const bl=board.blocks[h.bi], p=PROJ_OVR||projects.find(p=>p.id===curPj);
   if(h.k==='label') return bl.label||'';
   if(h.k==='main') return bl.text||'';
   if(h.k==='cell') return h.r<0 ? (bl.head[h.c]||'') : (bl.rows[h.r]['abc'[h.c]]||'');
@@ -1553,14 +1610,14 @@ function fieldGet(h){
   return board.values[k]||'';
 }
 function fieldSet(h,v){
-  const bl=board.blocks[h.bi], p=projects.find(p=>p.id===curPj);
+  const bl=board.blocks[h.bi], p=PROJ_OVR||projects.find(p=>p.id===curPj);
   if(h.k==='label') bl.label=v;
   else if(h.k==='main') bl.text=v;
   else if(h.k==='cell'){ if(h.r<0) bl.head[h.c]=v; else bl.rows[h.r]['abc'[h.c]]=v; }
   else { const k=bl.key||'free';
     if(k==='free') bl.value=v;
-    else if(k==='kouji'){ p.name=v; saveProjects(); renderHeader(); }
-    else if(k==='hacchu'||k==='sekou'){ p[k]=v; saveProjects(); }
+    else if(k==='kouji'){ p.name=v; if(!PROJ_OVR){ saveProjects(); renderHeader(); } }
+    else if(k==='hacchu'||k==='sekou'){ p[k]=v; if(!PROJ_OVR) saveProjects(); }
     else board.values[k]=v; }
   saveBoard();
 }
@@ -1577,8 +1634,8 @@ function startInline(h){
   const multi = h.k==='main' || (h.k==='value'&&board.blocks[h.bi].key==='hacchu');
   const el=document.createElement(multi?'textarea':'input'); if(!multi) el.type='text';
   el.className='edin'; el.value=fieldGet(h);
-  const d=ED.dpr, cvR=$('#edCanvas').getBoundingClientRect(), wr=$('#edWrap').getBoundingClientRect();
-  const x=h.x/d+(cvR.left-wr.left), y=h.y/d+(cvR.top-wr.top), w=Math.max(h.w/d,90), hh=Math.max(h.h/d,34)*(multi&&h.k!=='main'?1:1);
+  const d=ED.dpr;
+  const x=h.x/d, y=h.y/d, w=Math.max(h.w/d,90), hh=Math.max(h.h/d,34)*(multi&&h.k!=='main'?1:1);
   Object.assign(el.style,{left:x+'px',top:y+'px',width:w+'px',height:hh+'px',fontSize:Math.max(14,Math.min(22,h.h/d*0.45))+'px'});
   if(h.k==='cell'&&h.c>0&&h.r>=0) el.inputMode='decimal';
   el.oninput=()=>{ fieldSet(h,el.value); redrawEditOnly(); };
@@ -1607,9 +1664,9 @@ function renderEdSide(){
   $('#edDraw').hidden=sel.t!=='sketch';
   const isLab=h&&h.k==='label';
   $('#edTxt').hidden=!(sel.t==='row'||sel.t==='main'||sel.t==='table');
-  $('#edAl').hidden=!((sel.t==='row'&&!isLab)||sel.t==='main');
+  $('#edAl').hidden=!(sel.t==='row'||sel.t==='main'); $('#edInd').hidden=$('#edAl').hidden;
   $('#edLw').hidden=!(sel.t==='row'&&isLab);
-  $$('#edAl [data-al]').forEach(b=>b.classList.toggle('on',(sel.al||'center')===b.dataset.al));
+  const curAl=isLab?(sel.lal||''):(sel.al||'center'); $$('#edAl [data-al]').forEach(b=>b.classList.toggle('on',curAl===b.dataset.al));
   $('#edHide').hidden=!(sel.t==='sketch'||sel.t==='table');
   $('#edDate').hidden=sel.t!=='main'; if(sel.t==='main') $('#edDate').textContent=sel.date!==false?'日付を外す':'日付を入れる';
   const isRowMove=true; $('#edUp').disabled=ED.sel===0; $('#edDown').disabled=ED.sel===board.blocks.length-1;
@@ -1670,7 +1727,9 @@ $('#edDraw').onclick=()=>openSketch(board.blocks[ED.sel]);
 // 文字の大きさ（0.6〜1.8倍）・寄せ・項目名の幅
 function edFs(d){ const sel=board.blocks[ED.sel]; if(!sel) return; const key=ED.cell&&ED.cell.k==='label'?'lfs':'fs'; sel[key]=Math.round(clamp((sel[key]||1)+d,0.6,1.8)*10)/10; saveBoard(); renderEdit(); renderShootInfo(); toast('文字の大きさ：'+Math.round(sel[key]*100)+'%',800); }
 $('#edFsUp').onclick=()=>edFs(0.1); $('#edFsDn').onclick=()=>edFs(-0.1);
-$$('#edAl [data-al]').forEach(b=>b.onclick=()=>{ const sel=board.blocks[ED.sel]; if(!sel) return; sel.al=b.dataset.al; saveBoard(); renderEdit(); renderShootInfo(); });
+$$('#edAl [data-al]').forEach(b=>b.onclick=()=>{ const sel=board.blocks[ED.sel]; if(!sel) return; if(ED.cell&&ED.cell.k==='label') sel.lal=b.dataset.al; else sel.al=b.dataset.al; saveBoard(); renderEdit(); renderShootInfo(); });
+function edInd(d){ const sel=board.blocks[ED.sel]; if(!sel) return; const key=ED.cell&&ED.cell.k==='label'?'lind':'ind'; sel[key]=clamp((sel[key]||0)+d,0,6); if(key==='lind'&&!sel.lal) sel.lal='left'; if(key==='ind'&&(sel.al||'center')==='center') sel.al='left'; saveBoard(); renderEdit(); renderShootInfo(); toast('字下げ：'+sel[key]+'文字',800); }
+$('#edIndUp').onclick=()=>edInd(0.5); $('#edIndDn').onclick=()=>edInd(-0.5);
 function edLw(d){ const def=board.small||board.narrow?0.3:0.24; board.lw=Math.round(clamp((board.lw||def)+d,0.14,0.45)*100)/100; saveBoard(); renderEdit(); renderShootInfo(); }
 $('#edLwUp').onclick=()=>edLw(0.02); $('#edLwDn').onclick=()=>edLw(-0.02);
 $('#edHide').onclick=()=>{ const t=board.blocks[ED.sel]; t.hide=true; ED.sel=-1; ED.cell=null; saveBoard(); renderEdit(); renderShootInfo(); toast((t.t==='sketch'?'絵':'表')+'を隠しました。撮影画面左のボタンや「＋'+(t.t==='sketch'?'絵':'表')+'」でまた表示できます',2600); };
@@ -1711,7 +1770,7 @@ let curDetail=null;
 function openDetail(p){
   curDetail=p; $('#dtImg').src=objUrl(p,'blob');
   const d=new Date(p.ts);
-  const rows=[['写真区分',p.kubun],['工種',p.koushu],['種別',p.shubetsu],['細別',p.saibetsu],['測点（撮影箇所）',p.sokuten],['写真タイトル',p.title],['黒板',p.tplName+(p.state?`（${p.state}）`:'')],['撮影日時',`${fmtDate(d)} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`],['画素数',`${p.w}×${p.h}（約${Math.round(p.w*p.h/10000)}万画素）`],['書き出し',p.exported?'済み':'まだ']];
+  const rows=[['写真区分',p.kubun],['工種',p.koushu],['種別',p.shubetsu],['細別',p.saibetsu],['測点（撮影箇所）',p.sokuten],['写真タイトル',p.title],['黒板',p.tplName+(p.state?`（${p.state}）`:'')],['撮影日時',`${fmtDate(d)} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`],['画素数',`${p.w}×${p.h}（約${Math.round(p.w*p.h/10000)}万画素）`],['書き出し',p.exported?'済み':'まだ'],['黒板の修正',p.boardEdited?'撮影後に修正あり':'なし']];
   if(p.rows&&p.rows.length) rows.splice(6,0,[p.tableHead.join('／'),p.rows.map(r=>[r.a,r.b,r.c].join(' ／ ')).join('<br>')]);
   $('#dtMeta').innerHTML=rows.map(([k,v])=>`<tr><th>${k}</th><td>${k.includes('／')?v:esc(v||'—')}</td></tr>`).join('');
   $('#dtRep').textContent=p.rep?'⭐ 代表写真を外す':'⭐ 代表写真にする';
@@ -1719,6 +1778,39 @@ function openDetail(p){
 }
 $('#dtRep').onclick=async()=>{ curDetail.rep=!curDetail.rep; await DB.put(curDetail); openDetail(curDetail); renderList(); };
 $('#dtDel').onclick=async()=>{ if(!await askConfirm('この写真を削除しますか？（元に戻せません）')) return; await DB.del(curDetail.id); photos=photos.filter(p=>p.id!==curDetail.id); closeModal('mDetail'); renderList(); setLastThumb(); toast('削除しました'); };
+// 撮影後に黒板の文字を直す（黒板を入れる前の写真に、直した黒板を入れ直す）
+$('#dtFix').onclick=async()=>{
+  const p=curDetail;
+  if(!p.rawImg||!p.board){ toast('この機能を入れる前に撮った写真は、黒板を直せません',3000); return; }
+  if(!await askConfirm('撮影後に黒板の文字を直します。電子納品しない写真での利用を想定しています。電子納品で提出する写真の黒板を変える場合は、発注者と協議のうえ行ってください。','協議済み・電子納品しないので直す')) return;
+  ED.saved=board; ED.photo=p;
+  board=JSON.parse(JSON.stringify(p.board)); PROJ_OVR={...p.board._proj}; DATE_OVR=new Date(p.ts);
+  closeModal('mDetail'); openEditMode();
+};
+async function finishPhotoEdit(){
+  const p=ED.photo;
+  try{
+    const img=new Image(), url=URL.createObjectURL(p.rawImg);
+    await new Promise((res,rej)=>{ img.onload=res; img.onerror=rej; img.src=url; });
+    const W=p.w, H=p.h, d=new Date(p.ts), c=document.createElement('canvas'); c.width=W; c.height=H;
+    const ctx=c.getContext('2d'); ctx.drawImage(img,0,0,W,H); URL.revokeObjectURL(url);
+    drawBoard(ctx,board,W,H,d);
+    const m=buildMeta(d,W,H);
+    const bytes=new Uint8Array(await (await canvasToBlob(c,0.88)).arrayBuffer());
+    const blob=new Blob([insertExif(bytes,makeExif(m,d))],{type:'image/jpeg'});
+    const tc=document.createElement('canvas'); tc.width=320; tc.height=240; tc.getContext('2d').drawImage(c,0,0,320,240);
+    const thumb=await canvasToBlob(tc,0.75);
+    const snap=JSON.parse(JSON.stringify(board)); snap._proj={...PROJ_OVR};
+    const keep={id:p.id,pj:p.pj,ts:p.ts,rep:p.rep,rawImg:p.rawImg};
+    Object.keys(p).forEach(k=>delete p[k]);
+    Object.assign(p,m,keep,{blob,thumb,board:snap,boardEdited:true,exported:false});
+    await DB.put(p);
+    ['blob','thumb'].forEach(k=>{ const u=urlCache.get(p.id+k); if(u){ URL.revokeObjectURL(u); urlCache.delete(p.id+k); } });
+    toast('黒板を直しました（書き出しは「まだ」に戻ります）',2600);
+  }catch(e){ console.error(e); toast('黒板を直せませんでした：'+e.message,3000); }
+  board=ED.saved; ED.saved=null; ED.photo=null; PROJ_OVR=null; DATE_OVR=null;
+  renderShootInfo(); renderList(); setLastThumb(); openDetail(p);
+}
 $('#dtReuse').onclick=()=>{ const p=curDetail; Object.assign(board.values,{koushu:p.koushu,shubetsu:p.shubetsu,saibetsu:p.saibetsu,sokuten:p.sokuten}); board.state=p.state||''; board.kubun=p.kubun||board.kubun; saveBoard(); closeModal('mDetail'); show('shoot'); toast('この写真の工種・測点を黒板にセットしました'); };
 $('#dtSave').onclick=()=>{ const p=curDetail; download(p.blob, `${isoDate(new Date(p.ts))}_${safeName(p.title)}.jpg`); };
 
@@ -1759,7 +1851,7 @@ function renderCmpView(){
   } else {
     v.innerHTML=`<div class="slider" id="sld"><img src="${objUrl(o.after,'blob')}" alt=""><img class="top" src="${objUrl(o.before,'blob')}" alt=""><div class="bar"></div><span class="lb" style="left:6px">着工前</span><span class="lb" style="right:6px">完成</span></div><p class="muted">中央の線を左右に動かして比べます。</p>`;
     const s=$('#sld'), top=s.querySelector('.top'), bar=s.querySelector('.bar');
-    const mv=e=>{ const r=s.getBoundingClientRect(); const x=clamp((e.clientX-r.left)/r.width,0,1)*100; top.style.clipPath=`inset(0 ${100-x}% 0 0)`; bar.style.left=x+'%'; };
+    const mv=e=>{ const x=clamp(localXY(e,s)[0]/s.clientWidth,0,1)*100; top.style.clipPath=`inset(0 ${100-x}% 0 0)`; bar.style.left=x+'%'; };
     s.onpointerdown=e=>{ s.setPointerCapture(e.pointerId); mv(e); s.onpointermove=mv; };
     s.onpointerup=()=>{ s.onpointermove=null; };
   }
@@ -1796,7 +1888,7 @@ function ifd(entries,offset,next){
 }
 function makeExif(m,d){
   const dt=`${d.getFullYear()}:${pad2(d.getMonth()+1)}:${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
-  const info={写真大分類:m.daibunrui,写真区分:m.kubun,工種:m.koushu,種別:m.shubetsu,細別:m.saibetsu,撮影箇所:m.sokuten,写真タイトル:m.title,工事名:proj().name,施工者:proj().sekou,黒板:m.tplName,区分:m.state};
+  const info={写真大分類:m.daibunrui,写真区分:m.kubun,工種:m.koushu,種別:m.shubetsu,細別:m.saibetsu,撮影箇所:m.sokuten,写真タイトル:m.title,工事名:(PROJ_OVR||proj()).name,施工者:(PROJ_OVR||proj()).sekou,黒板:m.tplName,区分:m.state};
   const comment=Object.entries(info).filter(([,v])=>v).map(([k,v])=>`${k}:${v}`).join(' / ');
   const ent=(tag,type,bytes,count)=>({tag,type,bytes,count:count??bytes.length});
   const xpT=ucs2le(m.title), xpC=ucs2le(comment);
@@ -1989,8 +2081,8 @@ async function switchProject(){
   sessionCount=0; $('#cnt').textContent='0';
   renderHeader(); setLastThumb(); if(curView==='shoot') renderShootInfo();
 }
-window.addEventListener('resize',()=>{ if(curView==='shoot') fitCam(); });
-window.addEventListener('orientationchange',()=>setTimeout(()=>{ if(curView==='shoot') fitCam(); },300));
+window.addEventListener('resize',()=>{ applyRotation(); if(curView==='shoot') fitCam(); if($('#mEdit').classList.contains('on')) renderEdit(); });
+window.addEventListener('orientationchange',()=>setTimeout(()=>{ applyRotation(); if(curView==='shoot') fitCam(); },300));
 document.addEventListener('visibilitychange',()=>{ if(document.hidden) stopCam(); else if(curView==='shoot') startCam(); });
 
 (async function init(){
@@ -2003,6 +2095,7 @@ document.addEventListener('visibilitychange',()=>{ if(document.hidden) stopCam()
   saveProjects();
   await switchProject().catch(()=>{});
   fillDatalists();
+  applyRotation();
   show('shoot');
   if(!LS.get('tip1',false)){ LS.set('tip1',true); setTimeout(()=>toast('黒板をタップすると、拡大して直接書き換えられます',3500),800); }
   if(navigator.storage?.persist) navigator.storage.persist().catch(()=>{});
