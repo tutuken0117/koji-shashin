@@ -1559,13 +1559,16 @@ const GEN_WORDS={
   w_材料名:['U字溝','L型擁壁','L形側溝','歩車道境界ブロック','ヒューム管','集水桝','ボックスカルバート','グレーチング','再生砕石','アスファルト合材','生コンクリート'],
   w_立会者:['監督員','現場代理人','主任技術者']
 };
-const isHY=()=>{ const p=proj(); return !!p.hy||(p.name||'').replace(/\s/g,'')===DEFAULT_KOUJI.replace(/\s/g,''); };
+// 東山口の工事かどうか（全角・半角／大文字・小文字／スペースの違いは無視。工事名に「東山口幹線」が入っていれば東山口の工事）
+const normName=s=>String(s||'').normalize('NFKC').replace(/\s/g,'').toLowerCase();
+const isHY=()=>{ const p=proj(); if(p.hy) return true; const n=normName(p.name); return n===normName(DEFAULT_KOUJI)||n.includes('東山口幹線'); };
 let wordLists={};
 function loadWords(){
   let w=LS.get('wordLists_'+curPj,null);
   if(w===null){ // 以前の版（全工事共通のリスト）からの引き継ぎ：東山口の工事にだけ引き継ぐ
     const old=LS.get('wordLists',null); w=(old&&isHY())?old:{};
   }
+  if(isHY()){ const p=projects.find(x=>x.id===curPj); if(p&&!p.hy){ p.hy=true; saveProjects(); } }
   if(isHY()&&!w._v2){ // 東山口の候補を指定どおりに整理（工種・種別・説明文は指定の候補だけ、細別・側溝清掃はなし）
     ['koushu','shubetsu','main','saibetsu','sokuten@巡視路側溝清掃'].forEach(k=>delete w[k]); w._v2=true;
   }
