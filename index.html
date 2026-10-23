@@ -1036,8 +1036,19 @@ function drawBoard(ctx,b,W,H,d){
 const video=$('#video'), overlay=$('#overlay'), cam=$('#cam');
 let stream=null, camReady=false, camFailed=false;
 async function startCam(){
-  if(stream) return;
   const msg=$('#camMsg');
+  // 一時停止していたカメラは、そのまま再開する（起動し直さないので、カメラの許可を聞かれない）
+  if(stream){
+    const vt=stream.getVideoTracks();
+    if(vt.length&&vt.every(t=>t.readyState==='live')){
+      stream.getTracks().forEach(t=>t.enabled=true);
+      if(video.srcObject!==stream) video.srcObject=stream;
+      await video.play().catch(()=>{});
+      camReady=true; camFailed=false; msg.style.display='none'; fitCam(); kickIdle();
+      return;
+    }
+    stream=null; // 本当に切れていたときだけ起動し直す
+  }
   msg.style.display='flex'; msg.innerHTML='<div>カメラを準備しています…</div>';
   try{
     if(!navigator.mediaDevices?.getUserMedia) throw new Error('nosupport');
@@ -1052,10 +1063,11 @@ async function startCam(){
     msg.style.pointerEvents='none';
   }
 }
-function stopCam(){ if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; camReady=false; video.srcObject=null; } clearTimeout(idleTimer); }
+// カメラは止めずに一時停止（映像の処理を止めて電力を抑える。再開時に許可を聞かれない）
+function stopCam(){ if(stream){ stream.getTracks().forEach(t=>t.enabled=false); video.pause(); } camReady=false; clearTimeout(idleTimer); }
 // 省電力：撮影画面で2分間なにも操作しなければカメラを止める（画面をタップすると再開）
 let idleTimer=null, idleStopped=false;
-function kickIdle(){ clearTimeout(idleTimer); if(curView!=='shoot') return; idleTimer=setTimeout(()=>{ if(curView==='shoot'&&stream&&!document.querySelector('.modal.on')){ stopCam(); idleStopped=true; const m=$('#camMsg'); m.style.display='flex'; m.style.pointerEvents='none'; m.innerHTML='<div style="font-size:17px;color:#fff"><b>省電力のためカメラを止めています</b></div><div>画面をタップすると再開します</div>'; } },120000); }
+function kickIdle(){ clearTimeout(idleTimer); if(curView!=='shoot') return; idleTimer=setTimeout(()=>{ if(curView==='shoot'&&stream&&!document.querySelector('.modal.on')){ stopCam(); idleStopped=true; const m=$('#camMsg'); m.style.display='flex'; m.style.pointerEvents='none'; m.innerHTML='<div style="font-size:17px;color:#fff"><b>省電力のためカメラを一時停止しています</b></div><div>画面をタップすると再開します</div>'; } },120000); }
 $('#v-shoot').addEventListener('pointerdown',()=>{ if(idleStopped){ idleStopped=false; startCam(); } kickIdle(); },true);
 // 全画面表示：写る範囲（縦3:4／横4:3）の枠を画面いっぱいの最大サイズで中央に置き、
 // カメラ映像はその枠と写真の範囲がぴったり重なるように拡大して画面全体に表示する
@@ -2188,7 +2200,7 @@ async function switchProject(){
 }
 window.addEventListener('resize',()=>{ applyRotation(); if(curView==='shoot') fitCam(); if($('#mEdit').classList.contains('on')) renderEdit(); });
 window.addEventListener('orientationchange',()=>setTimeout(()=>{ applyRotation(); if(curView==='shoot') fitCam(); },300));
-document.addEventListener('visibilitychange',()=>{ if(document.hidden) stopCam(); else if(curView==='shoot') startCam(); });
+document.addEventListener('visibilitychange',()=>{ if(document.hidden) stopCam(); else if(curView==='shoot'&&!$('#mEdit').classList.contains('on')) startCam(); });
 
 (async function init(){
   try{ await DB.open(); }catch(e){ toast('この端末では写真を保存できません（プライベートモード等）',4000); }
