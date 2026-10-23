@@ -394,12 +394,14 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
       </div>
       <div class="card">
         <h3 style="margin-top:0">写管屋での取り込み手順</h3>
+        <div class="note" style="margin-bottom:10px">⚠ 写真（JPG）を1枚ずつ写管屋にドラッグしても、分類やタイトルは入りません。必ず①のZIPを作り、下の手順で <b>PHOTO.XML</b> から取り込んでください。</div>
         <ol class="steps">
-          <li>①のZIPをパソコンに保存し、展開（すべて展開）します。</li>
-          <li>写管屋で工事を開き、<b>電子納品データ（PHOTO.XML）の取り込み</b>を選びます。</li>
-          <li>展開した <code>PHOTO</code> フォルダを指定すると、工種・種別・測点ごとに自動で分類されます。</li>
+          <li>①のZIPをパソコンに移して、右クリック →「すべて展開」します。</li>
+          <li>写管屋で工事を開き、メニューの<b>［ファイル］→［保存データ取込］</b>を選びます。</li>
+          <li>展開したフォルダの中の <code>PHOTO</code> フォルダにある <b><code>PHOTO.XML</code></b> を指定します。</li>
+          <li>「今の分類に合成」か「新しい分類として取り込む」を選ぶと、<b>写真区分・工種・種別・細別・写真タイトル・撮影箇所・撮影日</b>が入った状態で振り分けられます。</li>
         </ol>
-        <p class="muted">※メニュー名は写管屋のバージョンで異なります。古いバージョンで読めない場合は「設定」でXMLの形式を「PHOTO04（旧基準）」に変えて書き出してください。</p>
+        <p class="muted">※メニュー名は写管屋のバージョンで少し異なることがあります。古いバージョンで読めない場合は「設定」でXMLの形式を「PHOTO04（旧基準）」に変えて書き出してください。</p>
       </div>
     </section>
 
@@ -2016,7 +2018,7 @@ async function finishPhotoEdit(){
   renderShootInfo(); renderList(); setLastThumb(); openDetail(p);
 }
 $('#dtReuse').onclick=()=>{ const p=curDetail; Object.assign(board.values,{koushu:p.koushu,shubetsu:p.shubetsu,saibetsu:p.saibetsu,sokuten:p.sokuten}); board.state=p.state||''; board.kubun=p.kubun||board.kubun; saveBoard(); closeModal('mDetail'); show('shoot'); toast('この写真の工種・測点を黒板にセットしました'); };
-$('#dtSave').onclick=()=>{ const p=curDetail; download(p.blob, `${isoDate(new Date(p.ts))}_${safeName(p.title)}.jpg`); };
+$('#dtSave').onclick=async()=>{ const p=curDetail; if(await download(p.blob, `${isoDate(new Date(p.ts))}_${safeName(p.title)}.jpg`)) setTimeout(()=>toast('写管屋へは「書き出し」の電子納品ZIP（PHOTO.XML）から取り込むと、分類・タイトルが入ります',3500),1700); };
 
 /* ===================== 対比 ===================== */
 function pairs(){
@@ -2176,11 +2178,14 @@ function buildPhotoXml(list){
   let s=`<?xml version="1.0" encoding="Shift_JIS"?>\r\n<!DOCTYPE photodata SYSTEM "PHOTO${v}.DTD">\r\n<photodata DTD_version="${v}">\r\n`;
   s+=`<基礎情報>\r\n<写真フォルダ名>PHOTO/PIC</写真フォルダ名>\r\n<適用要領基準>${x(prefs.kijun)}</適用要領基準>\r\n</基礎情報>\r\n`;
   list.forEach((p,i)=>{
+    // 写真タイトルは必須。空なら撮影箇所・工種などからつくる
+    const title=(p.title||'').trim()||[p.koushu,p.shubetsu,p.sokuten,p.state].filter(Boolean).join(' ')||p.kubun||'工事写真';
     const kanri=p.rows&&p.rows.length?p.rows.filter(r=>r.a||r.b||r.c).map(r=>{ const df=p.tableHead[3]?calcDiff(r.b,r.c):''; return `${r.a} ${p.tableHead[1]}${r.b} ${p.tableHead[2]}${r.c}`+(df?` ${p.tableHead[3]}${df}`:''); }).join(' / '):'';
-    s+=`<写真情報>\r\n<写真ファイル情報>\r\n<シリアル番号>${i+1}</シリアル番号>\r\n<写真ファイル名>${p._file}</写真ファイル名>\r\n<写真ファイル日本語名>${x(p.title)}</写真ファイル日本語名>\r\n<メディア番号>1</メディア番号>\r\n</写真ファイル情報>\r\n`;
-    s+=`<撮影工種区分>\r\n<写真-大分類>${x(p.daibunrui)}</写真-大分類>\r\n<写真区分>${x(p.kubun)}</写真区分>\r\n<工種>${x(p.koushu)}</工種>\r\n<種別>${x(p.shubetsu)}</種別>\r\n<細別>${x(p.saibetsu)}</細別>\r\n<写真タイトル>${x(p.title)}</写真タイトル>\r\n</撮影工種区分>\r\n`;
-    s+=`<撮影情報>\r\n<撮影箇所>${x(p.sokuten)}</撮影箇所>\r\n<撮影年月日>${isoDate(new Date(p.ts))}</撮影年月日>\r\n</撮影情報>\r\n`;
-    s+=`<代表写真>${p.rep?1:0}</代表写真>\r\n<提出頻度写真>0</提出頻度写真>\r\n<施工管理値>${x(kanri)}</施工管理値>\r\n<${desc}>${x(p.naiyou)}</${desc}>\r\n</写真情報>\r\n`;
+    s+=`<写真情報>\r\n<写真ファイル情報>\r\n<シリアル番号>${i+1}</シリアル番号>\r\n<写真ファイル名>${p._file}</写真ファイル名>\r\n<メディア番号>1</メディア番号>\r\n</写真ファイル情報>\r\n`;
+    const opt=(tag,v)=>String(v||'').trim()?`<${tag}>${x(String(v).trim())}</${tag}>\r\n`:''; // 空の項目は書かない（写管屋で空の分類ができないように）
+    s+=`<撮影工種区分>\r\n<写真-大分類>${x(p.daibunrui||'工事')}</写真-大分類>\r\n${opt('写真区分',p.kubun)}${opt('工種',p.koushu)}${opt('種別',p.shubetsu)}${opt('細別',p.saibetsu)}<写真タイトル>${x(title)}</写真タイトル>\r\n</撮影工種区分>\r\n`;
+    s+=`<撮影情報>\r\n${opt('撮影箇所',p.sokuten)}<撮影年月日>${isoDate(new Date(p.ts))}</撮影年月日>\r\n</撮影情報>\r\n`;
+    s+=`<代表写真>${p.rep?1:0}</代表写真>\r\n<提出頻度写真>0</提出頻度写真>\r\n${opt('施工管理値',kanri)}${opt(desc,p.naiyou)}</写真情報>\r\n`;
   });
   return s+'</photodata>\r\n';
 }
