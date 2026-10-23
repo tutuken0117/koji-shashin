@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#1f4a35">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -34,6 +34,8 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:16p
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
 [hidden]{display:none!important}
+html,body,button,a,input,select,textarea,canvas,label,.edb,.lbtn,.dditem{touch-action:manipulation}
+button{-webkit-user-select:none;user-select:none}
 button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 #app{display:flex;flex-direction:column;height:100%}
 header{display:flex;align-items:center;gap:8px;padding-block:8px;padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px));background:var(--accent);color:#fff}
@@ -220,7 +222,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
 .sktools button.on{background:#3fa775;color:#06130c}
 .sktools button.parts{background:#f2b705;color:#111}
 .skmain{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;padding:6px;padding-right:max(6px,env(safe-area-inset-right,0px))}
-.sktext{min-height:42px!important;background:#26302b!important;color:#fff!important;border-color:#3c4842!important}
+.sktext{font-size:16px!important;min-height:42px!important;background:#26302b!important;color:#fff!important;border-color:#3c4842!important}
 .skwrap{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
 #skCanvas{touch-action:none;border-radius:6px;box-shadow:0 0 0 1px #3c4842}
 .skfoot{display:flex;gap:8px;justify-content:flex-end}
@@ -263,7 +265,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
 .edgrp.sel{border-top:1px solid #3c4842;padding-top:8px}
 .edselname{font-size:13px;color:#ffb02e;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .edkey{display:flex;flex-direction:column;gap:3px;font-size:12px;color:#cfd8d3}
-.edkey select{min-height:38px!important;padding:4px 6px!important;background:#26302b!important;color:#fff!important;border-color:#3c4842!important;font-size:13px!important}
+.edkey select{min-height:40px!important;padding:4px 6px!important;background:#26302b!important;color:#fff!important;border-color:#3c4842!important;font-size:16px!important}
 .edmv{display:flex;gap:5px}.edmv .edb{flex:1}
 .edpk{position:absolute;z-index:4;border:0;border-radius:8px;background:rgba(242,183,5,.95);color:#111;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0;box-shadow:0 1px 4px rgba(0,0,0,.4)}
 .edpk.empty{background:rgba(242,183,5,.5)}
@@ -600,7 +602,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
   <div id="pkList" class="pklist"></div>
   <button class="btn block" id="pkCurBtn" hidden></button>
   <label class="f" for="pkNew">新しい候補を登録</label>
-  <div class="row"><input type="text" id="pkNew" placeholder="例：舗装工"><button class="btn pri" id="pkAdd" style="flex:none">登録</button></div>
+  <div class="row"><input type="text" id="pkNew" placeholder="新しい候補"><button class="btn pri" id="pkAdd" style="flex:none">登録</button></div>
 </div></div>
 <datalist id="dlKoushu"></datalist><datalist id="dlShubetsu"></datalist><datalist id="dlSaibetsu"></datalist>
 <div class="toast" id="toast"></div>
@@ -1285,7 +1287,7 @@ let boardTab='write';
 function openBoard(tab){ if(tab) boardTab=tab; renderBoardEditor(); openModal('mBoard'); }
 function boardChanged(full){ saveBoard(); renderShootInfo(); renderBoardPreview(); if(full) renderBoardEditor(); if($('#mEdit').classList.contains('on')) renderEdit(); }
 function previewBg(ctx,w,h){ const g=ctx.createLinearGradient(0,0,0,h); g.addColorStop(0,'#a9bccb'); g.addColorStop(.55,'#7d9270'); g.addColorStop(1,'#5b6e4c'); ctx.fillStyle=g; ctx.fillRect(0,0,w,h); }
-const SAMPLE_VALUES={koushu:'舗装工',shubetsu:'表層工',saibetsu:'',sokuten:'No.1'};
+const SAMPLE_VALUES={koushu:'草刈工',shubetsu:'鉄塔敷地',saibetsu:'',sokuten:'No.132'};
 function sampleOf(b){ return {...b,x:null,y:null,values:Object.fromEntries(Object.entries({...SAMPLE_VALUES,...b.values}).map(([k,v])=>[k,v||SAMPLE_VALUES[k]||'']))}; }
 // 黒板の縦横比（幅1に対する高さ）
 function boardRatio(b){ const g=layout({...b,bwPx:1000,x:0,y:0},100000,100000,new Date()); return g?g.h/1000:0.4; }
@@ -1322,7 +1324,7 @@ function renderBoardEditor(){
 /* --- 内容を書く --- */
 function renderWriteTab(){
   const box=$('#writeBox'); box.innerHTML='';
-  const ph={koushu:'例：舗装工',shubetsu:'例：表層工',saibetsu:'例：密粒度アスコン',sokuten:'例：No.12+5.0',kouji:'例：市道○○線 舗装補修工事',sekou:DEFAULT_SEKOU,hacchu:'例：○○市 建設部（改行で2行）'};
+  const ph={koushu:'例：草刈工',shubetsu:'例：鉄塔敷地',saibetsu:'例：山地・密',sokuten:'例：No.132',kouji:'例：市道○○線 舗装補修工事',sekou:DEFAULT_SEKOU,hacchu:'例：○○市 建設部（改行で2行）'};
   const used=new Set();
   // 入力欄＋「候補」ボタン（登録した文字をプルダウンのように選べる）
   const addInput=(label,value,onInput,opt={})=>{
@@ -1540,7 +1542,7 @@ function renderParts(){
 const HY_TOWERS=[...Array.from({length:12},(_,i)=>i+1),...Array.from({length:45},(_,i)=>i+126)];
 const HY_SPANS=['トラス～No.1',...HY_TOWERS.slice(1).map((n,i)=>'No.'+HY_TOWERS[i]+'～No.'+n).filter(s=>s!=='No.1～No.2')];
 const DEFAULT_WORDS={
-  koushu:['草刈工','清掃工',...PRESET.koushu], shubetsu:['鉄塔敷地','巡視路','巡視路側溝清掃',...PRESET.shubetsu], saibetsu:['山地・密','山地・疎','丘陵地・密','丘陵地・疎',...PRESET.saibetsu],
+  koushu:['草刈工','清掃工'], shubetsu:['鉄塔敷地','巡視路','巡視路側溝清掃'], saibetsu:['山地・密','山地・疎'],
   'sokuten@鉄塔敷地':HY_TOWERS.map(n=>'No.'+n),
   'sokuten@巡視路':HY_SPANS,
   'sokuten@巡視路側溝清掃':['No.12～No.126'],
@@ -1550,6 +1552,8 @@ const DEFAULT_WORDS={
   w_立会者:['監督員','現場代理人','主任技術者']
 };
 let wordLists=LS.get('wordLists',{});
+// 以前の版で工種・種別・細別の候補に混ざっていた一般的な例（道路土工・掘削工など）を取り除く
+if(!LS.get('wordsCleaned1',false)){ ['koushu','shubetsu','saibetsu'].forEach(k=>{ if(wordLists[k]) wordLists[k]=wordLists[k].filter(w=>!PRESET[k].includes(w)); }); LS.set('wordLists',wordLists); LS.set('wordsCleaned1',true); }
 const wordsOf=key=>wordLists[key]||(DEFAULT_WORDS[key]?DEFAULT_WORDS[key].slice():[]);
 function saveWords(key,list){ wordLists[key]=list; LS.set('wordLists',wordLists); }
 // 撮影箇所（測点）の候補は「種別」ごとに分ける（例：種別が鉄塔敷地なら鉄塔のリスト、巡視路なら径間のリスト）
@@ -1700,7 +1704,7 @@ function startInline(h){
   el.className='edin'; el.value=fieldGet(h);
   const d=ED.dpr;
   const x=h.x/d, y=h.y/d, w=Math.max(h.w/d,90), hh=Math.max(h.h/d,34)*(multi&&h.k!=='main'?1:1);
-  Object.assign(el.style,{left:x+'px',top:y+'px',width:w+'px',height:hh+'px',fontSize:Math.max(14,Math.min(22,h.h/d*0.45))+'px'});
+  Object.assign(el.style,{left:x+'px',top:y+'px',width:w+'px',height:hh+'px',fontSize:Math.max(16,Math.min(22,h.h/d*0.45))+'px'});
   if(h.k==='cell'&&h.c>0&&h.r>=0) el.inputMode='decimal';
   el.oninput=()=>{ fieldSet(h,el.value); redrawEditOnly(); };
   el.onkeydown=e=>{ if(e.key==='Enter'&&!multi){ e.preventDefault(); commitInline(); } if(e.key==='Escape') commitInline(); };
@@ -1803,7 +1807,7 @@ window.addEventListener('resize',()=>{ if($('#mEdit').classList.contains('on')) 
 function fillDatalists(){
   ['koushu','shubetsu','saibetsu'].forEach(k=>{
     const id={koushu:'dlKoushu',shubetsu:'dlShubetsu',saibetsu:'dlSaibetsu'}[k];
-    const vals=[...new Set([...history[k],...PRESET[k]])];
+    const vals=[...new Set([...history[k],...wordsOf(k)])];
     $('#'+id).innerHTML=vals.map(v=>`<option value="${esc(v)}">`).join('');
   });
 }
