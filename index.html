@@ -157,7 +157,9 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-
 /* modal */
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:flex-end;justify-content:center;z-index:50}
 .modal.on{display:flex}
-.sheet{background:var(--panel);color:var(--ink);width:100%;max-width:640px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:14px 16px calc(18px + env(safe-area-inset-bottom))}
+/* 画面上のノッチ・時計の下に✕が隠れないよう、シートは安全領域の内側に置く */
+.modal:not(.full):not(.top){padding-top:max(10px,env(safe-area-inset-top,0px))}
+.sheet{background:var(--panel);color:var(--ink);width:100%;max-width:640px;max-height:min(92vh,100%);overflow:auto;border-radius:18px 18px 0 0;padding:14px 16px calc(18px + env(safe-area-inset-bottom));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .sheet .hd{display:flex;align-items:center;gap:8px;position:sticky;top:-14px;background:var(--panel);padding:6px 0 8px;z-index:2}
 .sheet .hd h2{margin:0;flex:1}
 .x{width:44px;height:44px;border-radius:50%;border:0;background:var(--bg);font-size:20px}
@@ -168,6 +170,13 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-
 .tabs{margin-bottom:10px;position:sticky;top:44px;z-index:2}
 .tabs button{font-size:14px;min-height:44px}
 .tab{display:none}.tab.on{display:block}
+.tpls.designs{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.tpls.designs canvas{aspect-ratio:300/170}
+.tpls.designs .tpl{padding:4px}
+.tpls.designs .tpl b{font-size:13px;margin-top:2px;text-align:center}
+.szrow{display:flex;align-items:center;gap:10px;margin-top:10px}
+.szrow b{flex:none;font-size:15px}
+.szrow .seg{flex:1}
 /* 横向き：左に黒板プレビュー、右に編集欄 */
 @media (orientation:landscape) and (max-height:600px){
   #mBoard{align-items:stretch}
@@ -436,9 +445,8 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
 <div class="modal full" id="mEdit"><div class="edpane">
   <div class="edtop">
     <div class="edtitle"><b id="edName"></b><span>タップで選ぶ・2回タップで文字を打つ・▽で候補から選ぶ</span></div>
-    <button class="edb tpl" id="edTpl">📋 黒板</button>
-    <button class="edb" id="edDesign">🎨 色</button>
-    <button class="edb" id="edClass">🗂 分類</button>
+    <button class="edb tpl" id="edTpl">📋 黒板編集</button>
+    <button class="edb" id="edDesign">🎨 色・大きさ</button>
   </div>
   <div class="edbar"><label for="edKubun">写真区分</label><select id="edKubun"></select><span class="edstate" id="edState"></span></div>
   <div class="edmain">
@@ -475,7 +483,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
 <div class="modal" id="mBoard"><div class="sheet">
   <div class="hd"><h2>黒板：<span id="bName"></span></h2><button class="x" data-close aria-label="閉じる">✕</button></div>
   <canvas id="bPrev" class="bprev" width="600" height="300" aria-label="黒板のプレビュー"></canvas>
-  <div class="seg tabs" id="bTabs"><button data-tab="my">📋 黒板・My黒板</button><button data-tab="design">🎨 色・大きさ</button><button data-tab="write">🗂 分類</button></div>
+  <div class="seg tabs" id="bTabs"><button data-tab="my">📋 黒板編集</button><button data-tab="design">🎨 色・大きさ</button></div>
   <div class="tab" id="tab-write">
     <div id="writeBox"></div>
     <h3>写真の分類</h3>
@@ -494,9 +502,8 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
     <div class="toggle"><div>黒板を写さない</div><label class="sw"><input type="checkbox" id="optNone"><span></span></label></div>
   </div>
   <div class="tab" id="tab-design">
-    <div class="tpls" id="designGrid"></div>
-    <h3>大きさ</h3>
-    <div class="seg" id="sizeSeg"><button data-s="0.26">小</button><button data-s="0.32">中</button><button data-s="0.4">大</button></div>
+    <div class="tpls designs" id="designGrid"></div>
+    <div class="szrow"><b>大きさ</b><div class="seg" id="sizeSeg"><button data-s="0.26">小</button><button data-s="0.32">中</button><button data-s="0.4">大</button></div></div>
   </div>
   <div class="tab" id="tab-my">
     <h3 style="margin-top:0">黒板の向き（タップで切り替え）</h3>
@@ -543,7 +550,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
   <div class="hd"><h2>使い方（3ステップ）</h2><button class="x" data-close>✕</button></div>
   <ol class="steps">
     <li><b>黒板をタップして書く</b><br><span class="muted">撮影画面の黒板をタップすると黒板が大きく表示されます。黄色い▽を押すと候補のリストが出るので、選ぶだけで入力できます。文字を打つときはマスを2回タップします。撮影箇所の候補は「種別」ごとに分かれています（鉄塔敷地なら鉄塔番号、巡視路なら径間）。</span></li>
-    <li><b>ひな形・デザインを選ぶ</b><br><span class="muted">編集画面の上の「📋 黒板」で横向き／縦向き、「🎨 色」で黒板の色を選びます。マスを選ぶと右側で文字の大きさ（A－／A＋）や位置（左・中・右）、項目名の幅を変えられます。「＋項目」「＋絵」「＋表」で黒板に追加できます。</span></li>
+    <li><b>ひな形・デザインを選ぶ</b><br><span class="muted">編集画面の上の「📋 黒板編集」で横向き／縦向き、「🎨 色・大きさ」で黒板の色と大きさを選びます。マスを選ぶと右側で文字の大きさ（A－／A＋）や位置（左・中・右）、項目名の幅を変えられます。「＋項目」「＋絵」「＋表」で黒板に追加できます。</span></li>
     <li><b>シャッターを押す</b><br><span class="muted">黒板入りの写真がすぐ保存されるので、続けてどんどん撮れます。シャッター長押しで連写します。撮影はスマホを横向きにして行います。左上の「☰」で写真一覧や設定に移ります。</span></li>
   </ol>
   <div class="note">💡 <b>着工前と完成の対比</b>：完成を撮るとき「着工前を重ねる」をオンにすると、同じ測点の着工前写真が半透明で表示されます。同じ角度で撮れば「対比」画面できれいに並びます。</div>
@@ -1314,7 +1321,7 @@ $('#lastBtn').onclick=()=>show('list');
 
 
 /* ===================== 黒板編集 ===================== */
-let boardTab='write';
+let boardTab='my';
 function openBoard(tab){ if(tab) boardTab=tab; renderBoardEditor(); openModal('mBoard'); }
 function boardChanged(full){ saveBoard(); renderShootInfo(); renderBoardPreview(); if(full) renderBoardEditor(); if($('#mEdit').classList.contains('on')) renderEdit(); }
 function previewBg(ctx,w,h){ const g=ctx.createLinearGradient(0,0,0,h); g.addColorStop(0,'#a9bccb'); g.addColorStop(.55,'#7d9270'); g.addColorStop(1,'#5b6e4c'); ctx.fillStyle=g; ctx.fillRect(0,0,w,h); }
@@ -1333,9 +1340,9 @@ function drawBoardFit(cv,b,pad=12,bg=true){
 function drawBoardOnly(cv,b){ drawBoardFit(cv,b); }
 function renderBoardPreview(){ drawBoardOnly($('#bPrev'),board); }
 function blockSummary(p){ if(p.none) return '黒板を写さない'; return (p.blocks||[]).map(b=>b.t==='row'?(b.label||'項目'):b.t==='main'?'記事欄':b.t==='sketch'?'絵':'表').filter((v,i,a)=>a.indexOf(v)===i).join('・'); }
-function tileFor(name,sub,b,on,onclick,onDel){
+function tileFor(name,sub,b,on,onclick,onDel,ch=225){
   const el=document.createElement('div'); el.className='tpl'+(on?' on':''); el.tabIndex=0; el.setAttribute('role','button');
-  el.innerHTML=`<canvas width="300" height="225"></canvas><b>${esc(name)}</b>${sub?`<small>${esc(sub)}</small>`:''}${onDel?'<button class="tdel" aria-label="削除">✕</button>':''}`;
+  el.innerHTML=`<canvas width="300" height="${ch}"></canvas><b>${esc(name)}</b>${sub?`<small>${esc(sub)}</small>`:''}${onDel?'<button class="tdel" aria-label="削除">✕</button>':''}`;
   drawBoardOnly(el.querySelector('canvas'),sampleOf(b));
   el.onclick=e=>{ if(e.target.closest('.tdel')) return; onclick(); };
   el.onkeydown=e=>{ if(e.key==='Enter') onclick(); };
@@ -1461,7 +1468,7 @@ function markCustom(){ if(board.pname&&!board.pname.endsWith('（編集中）'))
 /* --- デザイン --- */
 function renderDesignTab(){
   const grid=$('#designGrid'); grid.innerHTML='';
-  DESIGNS.forEach(D=>grid.appendChild(tileFor(D.name,'',{...board,none:false,design:D.id},designOf(board).id===D.id,()=>{ board.design=D.id; boardChanged(true); })));
+  DESIGNS.forEach(D=>grid.appendChild(tileFor(D.name,'',{...board,none:false,design:D.id},designOf(board).id===D.id,()=>{ board.design=D.id; boardChanged(true); },null,170)));
   $$('#sizeSeg button').forEach(b=>{ b.classList.toggle('on',+b.dataset.s===board.size); b.onclick=()=>{ board.size=+b.dataset.s; boardChanged(true); }; });
 }
 /* --- My黒板・ひな形 --- */
@@ -1840,7 +1847,6 @@ $('#edDone').onclick=()=>closeEditMode();
 $('#bGoShoot').onclick=()=>{ closeModal('mBoard'); if($('#mEdit').classList.contains('on')) closeEditMode(); if(curView!=='shoot') show('shoot'); };
 $('#edTpl').onclick=()=>{ commitInline(); openBoard('my'); };
 $('#edDesign').onclick=()=>{ commitInline(); openBoard('design'); };
-$('#edClass').onclick=()=>{ commitInline(); openBoard('write'); };
 $('#edAddRow').onclick=()=>edAdd('row');
 $('#edAddSketch').onclick=()=>edAdd('sketch');
 $('#edAddTable').onclick=()=>edAdd('table');
