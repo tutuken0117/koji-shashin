@@ -88,9 +88,11 @@ body.shooting header{display:none}
 .rotate small{font-size:14px;color:#cfd8d3;line-height:1.6}
 @keyframes rot{0%,30%{transform:rotate(0)}60%,100%{transform:rotate(-90deg)}}
 @media (prefers-reduced-motion:reduce){.rotate .ph{animation:none}}
-.backcam{position:fixed;right:max(18px,env(safe-area-inset-right,0px));bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:40;display:flex;align-items:center;gap:8px;border:0;border-radius:40px;background:var(--accent);color:var(--accent-ink);font-size:22px;font-weight:700;padding:12px 22px 12px 18px;box-shadow:0 4px 16px rgba(0,0,0,.3)}
-.backcam span{font-size:16px}
-body.shooting .backcam{display:none}
+/* 下に固定する「📷 撮影」ボタン（どの画面でも同じ） */
+.camfootbar{flex:none;padding:8px 12px;padding-bottom:calc(8px + env(safe-area-inset-bottom,0px));padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px));background:#141816}
+.camfootbar.fixed{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--panel);background:color-mix(in srgb,var(--panel) 92%,transparent);border-top:1px solid var(--line)}
+.camfoot{display:block;width:100%;max-width:520px;margin:0 auto;min-height:54px;border:0;border-radius:14px;background:#3fa775;color:#06130c;font-size:19px;font-weight:700;box-shadow:0 2px 10px rgba(0,0,0,.25)}
+body.shooting #backCamBar{display:none}
 .view{padding-bottom:96px!important}
 /* メニュー */
 .modal.top{align-items:flex-start}
@@ -256,7 +258,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
 .edb.hi{background:#2f6fd6}
 .edb.danger{background:#5a2320;color:#ffb4ab}
 .edb:disabled{opacity:.35}
-.edmain{flex:1;min-height:0;display:flex;gap:6px;padding:6px;padding-bottom:max(6px,env(safe-area-inset-bottom,0px));padding-right:max(6px,env(safe-area-inset-right,0px));padding-left:max(6px,env(safe-area-inset-left,0px))}
+.edmain{flex:1;min-height:0;display:flex;gap:6px;padding:6px;padding-right:max(6px,env(safe-area-inset-right,0px));padding-left:max(6px,env(safe-area-inset-left,0px))}
 .edwrap{flex:1;min-width:0;position:relative;border-radius:8px;overflow:hidden}
 #edCanvas{display:block;touch-action:manipulation;cursor:pointer}
 .edin{position:absolute;box-sizing:border-box;border:3px solid #ffb02e!important;border-radius:6px;background:rgba(10,14,12,.92)!important;color:#fff!important;padding:2px 8px!important;min-height:0!important;font-weight:700;resize:none;z-index:5;text-align:center}
@@ -295,7 +297,6 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
   <header>
     <button class="hbtn" id="hdMenu" aria-label="メニュー">☰</button>
     <button class="pj" id="pjBtn"><small>工事</small><b id="pjName">工事を設定してください</b></button>
-    <button class="hbtn camgo" id="hdShoot">📷 撮影</button>
   </header>
   <main>
     <!-- 撮影（全画面） -->
@@ -416,7 +417,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
       </div>
     </section>
   </main>
-  <button class="backcam" id="backCam" aria-label="撮影に戻る">📷<span>撮影に戻る</span></button>
+  <div class="camfootbar fixed" id="backCamBar"><button class="camfoot" id="backCam">📷 撮影</button></div>
   <!-- メニュー -->
   <div class="modal top" id="mMenu"><div class="sheet menusheet">
     <div class="hd"><h2>メニュー</h2><button class="x" data-close aria-label="閉じる">✕</button></div>
@@ -434,7 +435,6 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
 <!-- 黒板編集モード -->
 <div class="modal full" id="mEdit"><div class="edpane">
   <div class="edtop">
-    <button class="edb pri" id="edDone">✓ 完了</button>
     <div class="edtitle"><b id="edName"></b><span>タップで選ぶ・2回タップで文字を打つ・▽で候補から選ぶ</span></div>
     <button class="edb tpl" id="edTpl">📋 黒板</button>
     <button class="edb" id="edDesign">🎨 色</button>
@@ -453,7 +453,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
       <div class="edgrp sel" id="edSel" hidden>
         <div class="edselname" id="edSelName"></div>
         <div class="edtxt" id="edTxt"><span>文字</span><button class="edb" id="edFsDn" aria-label="文字を小さく">A－</button><button class="edb" id="edFsUp" aria-label="文字を大きく">A＋</button></div>
-        <div class="edtxt" id="edAl"><span>配置</span><button class="edb" data-al="left">左</button><button class="edb" data-al="center">中</button><button class="edb" data-al="right">右</button><button class="edb" data-al="justify">均等</button></div><div class="edtxt" id="edInd"><span>字下げ（インデント）</span><button class="edb" id="edIndDn" aria-label="字下げを減らす">◀ 減</button><button class="edb" id="edIndUp" aria-label="字下げを増やす">増 ▶</button></div>
+        <div class="edtxt" id="edAl"><span>配置</span><button class="edb" data-al="left">左</button><button class="edb" data-al="center">中</button><button class="edb" data-al="right">右</button><button class="edb" data-al="justify">均等</button><button class="edb" data-al="spaced">1字あけ</button></div><div class="edtxt" id="edInd"><span>字下げ（インデント）</span><button class="edb" id="edIndDn" aria-label="字下げを減らす">◀ 減</button><button class="edb" id="edIndUp" aria-label="字下げを増やす">増 ▶</button></div>
         <div class="edtxt" id="edLw"><span>項目名の幅</span><button class="edb" id="edLwDn" aria-label="項目名の欄を狭く">◀</button><button class="edb" id="edLwUp" aria-label="項目名の欄を広く">▶</button></div>
         <button class="edb hi" id="edPick">候補から選ぶ ▽</button>
         <button class="edb" id="edType">⌨ 文字を打つ</button>
@@ -469,6 +469,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
       </div>
     </div>
   </div>
+  <div class="camfootbar"><button class="camfoot" id="edDone">📷 撮影</button></div>
 </div></div>
 <!-- 黒板編集 -->
 <div class="modal" id="mBoard"><div class="sheet">
@@ -504,7 +505,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
     <div class="row"><input type="text" id="myName" placeholder="名前（例：草刈 完了）" aria-label="My黒板の名前"><button class="btn pri" id="mySave" style="flex:none">今の黒板を保存</button></div>
     <div class="tpls" id="myGrid" style="margin-top:8px"></div>
   </div>
-  <div class="sticky-go"><button class="btn pri block" data-close>決定</button></div>
+  <div class="sticky-go"><button class="camfoot" id="bGoShoot">📷 撮影</button></div>
 </div></div>
 
 <!-- 撮影確認 -->
@@ -918,7 +919,9 @@ function justifyText(ctx,s,x0,x1,cy,fs){
   ch.forEach((c,i)=>{ ctx.fillText(c,x,cy); x+=ws[i]+gap; });
 }
 // 文字の配置（左・中央・右・均等）と字下げ（ind：文字数ぶん）
+const spaced=s=>[...String(s||'').replace(/[\s　]+/g,'')].join('　');
 function alignText(ctx,s,al,x0,x1,cy,fs,ind,pad,bold){
+  if(al==='spaced'){ const a=x0+pad, b=x1-pad; return fitText(ctx,spaced(s),(a+b)/2,cy,b-a,fs,'center',bold); }
   const i=(ind||0)*fs, a=x0+pad+(al==='right'?0:i), b=x1-pad-(al==='left'?0:i);
   if(al==='justify') return justifyText(ctx,s,a,b,cy,fs);
   if(al==='left') return fitText(ctx,s,a,cy,b-a,fs,'left',bold);
@@ -1024,13 +1027,13 @@ function drawBoard(ctx,b,W,H,d){
     sep();
     ctx.fillStyle=D.fg;
     if(it.compact){ // 絵や表があるときは1行にまとめる（文字は左、日付は右）
-      if(it.text){ const s=it.text.replace(/\n/g,' '); if([...s].length<=4&&!s.includes(' ')) spreadText(ctx,s,ix+iw*0.3,yy+it.h/2,iw*0.4,rh*0.78*it.fs); else fitText(ctx,s,ix+rh*0.4,yy+it.h/2,iw*0.55,rh*0.7*it.fs,'left',true); }
+      if(it.text){ const s=it.text.replace(/\n/g,' '); const sp=(it.al==='center'||it.al==='spaced')&&[...s.replace(/[\s　]/g,'')].length<=4; fitText(ctx,sp?spaced(s):s,ix+rh*0.4,yy+it.h/2,iw*0.55,rh*(sp?0.78:0.7)*it.fs,'left',true); }
       if(it.date) fitText(ctx,fmtDate(d||new Date()),ix+iw-rh*0.3,yy+it.h/2,iw*0.42,rh*0.44,'right',true);
     } else {
       if(it.text){
         const lines=it.text.split('\n').slice(0,2);
         const fs=(lines.length>1?rh*0.85:rh*1.3)*it.fs; const mx= it.al==='left'?ix+iw*0.05 : it.al==='right'?ix+iw*0.95 : ix+iw/2, ma= it.al==='left'?'left':it.al==='right'?'right':'center'; const mx0=ix+rh*0.3+(it.ind||0)*fs*0.5, mx1=ix+iw-rh*0.3-(it.ind||0)*fs*0.5;
-        lines.forEach((s,i)=>{ const cy=yy+it.h*(lines.length>1?(i?0.6:0.3):(it.date?0.44:0.5)); if(it.al==='justify') justifyText(ctx,s,mx0,mx1,cy,fs); else if(it.al==='left') fitText(ctx,s,mx0,cy,mx1-mx0,fs,'left',true); else if(it.al==='right') fitText(ctx,s,mx1,cy,mx1-mx0,fs,'right',true); else if([...s].length<=4&&!s.includes(' ')) spreadText(ctx,s,mx,cy,iw*0.62,fs); else fitText(ctx,s,mx,cy,iw*0.88,fs,ma,true); });
+        lines.forEach((s,i)=>{ const cy=yy+it.h*(lines.length>1?(i?0.6:0.3):(it.date?0.44:0.5)); if(it.al==='justify') justifyText(ctx,s,mx0,mx1,cy,fs); else if(it.al==='left') fitText(ctx,s,mx0,cy,mx1-mx0,fs,'left',true); else if(it.al==='right') fitText(ctx,s,mx1,cy,mx1-mx0,fs,'right',true); else if(it.al==='spaced'||[...s.replace(/[\s　]/g,'')].length<=4) fitText(ctx,spaced(s),mx,cy,iw*0.88,fs,'center',true); else fitText(ctx,s,mx,cy,iw*0.88,fs,ma,true); });
       }
       if(it.date) fitText(ctx,fmtDate(d||new Date()),ix+iw-rh*0.3,yy+it.h-rh*0.42,iw*0.6,rh*0.44,'right',true);
     }
@@ -1652,6 +1655,7 @@ function renderEdit(){
   if(!ED.g){ ctx.fillStyle='#fff'; ctx.font=`700 ${18*dpr}px ${FONT}`; ctx.textAlign='center'; ctx.fillText('「黒板を写さない」になっています（分類で変更）',cv.width/2,cv.height/2); }
   // 選んでいる項目を枠で示す
   if(ED.g&&ED.sel>=0){ const it=ED.g.items.find(i=>i.bi===ED.sel); if(it){ ctx.save(); ctx.strokeStyle='#ffb02e'; ctx.lineWidth=3*dpr; ctx.setLineDash([8*dpr,5*dpr]); ctx.strokeRect(it.rect[0]+2,it.rect[1]+2,it.rect[2]-4,it.rect[3]-4); ctx.restore(); } }
+  $('#edDone').textContent=ED.photo?'✓ 直して保存':'📷 撮影';
   $('#edName').textContent=ED.photo?'撮影済み写真の黒板を修正中':(board.pname||'カスタム');
   renderEdSide();
   renderPkButtons();
@@ -1833,6 +1837,7 @@ function edAdd(type){
   if(type==='sketch') openSketch(nb);
 }
 $('#edDone').onclick=()=>closeEditMode();
+$('#bGoShoot').onclick=()=>{ closeModal('mBoard'); if($('#mEdit').classList.contains('on')) closeEditMode(); if(curView!=='shoot') show('shoot'); };
 $('#edTpl').onclick=()=>{ commitInline(); openBoard('my'); };
 $('#edDesign').onclick=()=>{ commitInline(); openBoard('design'); };
 $('#edClass').onclick=()=>{ commitInline(); openBoard('write'); };
@@ -2204,7 +2209,6 @@ function show(v,fromBack){
 function openMenu(){ openModal('mMenu'); }
 $$('#menuList button').forEach(b=>b.onclick=()=>{ closeModal('mMenu'); if(b.dataset.v==='help') openModal('mHelp'); else show(b.dataset.v); });
 $('#hdMenu').onclick=()=>openMenu();
-$('#hdShoot').onclick=()=>show('shoot');
 $('#backCam').onclick=()=>show('shoot');
 $('#pjBtn').onclick=()=>show('set');
 function renderHeader(){ $('#pjName').textContent=proj().name||'工事名 未入力（タップで設定）'; }
