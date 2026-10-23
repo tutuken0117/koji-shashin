@@ -266,6 +266,10 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
 .edselname{font-size:13px;color:#ffb02e;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .edkey{display:flex;flex-direction:column;gap:3px;font-size:12px;color:#cfd8d3}
 .edkey select{min-height:40px!important;padding:4px 6px!important;background:#26302b!important;color:#fff!important;border-color:#3c4842!important;font-size:16px!important}
+.edbar{display:flex;align-items:center;gap:8px;padding:6px 10px;padding-left:max(10px,env(safe-area-inset-left,0px));background:#141816;border-top:1px solid #26302b;flex:none;flex-wrap:wrap}
+.edbar label{font-size:13px;font-weight:700;color:#9fd3b6}
+.edbar select{width:auto!important;min-height:40px!important;padding:4px 10px!important;background:#26302b!important;color:#fff!important;border:1.5px solid #3fa775!important;font-size:16px!important;font-weight:700}
+.edstate{font-size:12px;color:#ffb02e}
 .edmv{display:flex;gap:5px}.edmv .edb{flex:1}
 .edpk{position:absolute;z-index:4;border:0;border-radius:8px;background:rgba(242,183,5,.95);color:#111;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0;box-shadow:0 1px 4px rgba(0,0,0,.4)}
 .edpk.empty{background:rgba(242,183,5,.5)}
@@ -382,8 +386,6 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
         <label class="f" for="pjN">工事名</label><input type="text" id="pjN" placeholder="例：市道○○線 舗装補修工事">
         <label class="f" for="pjH">発注者（改行で2行にできます）</label><textarea id="pjH" rows="2" placeholder="例：○○市 建設部&#10;道路維持課"></textarea>
         <label class="f" for="pjS">施工者（受注者）</label><input type="text" id="pjS" placeholder="例：○○建設株式会社">
-        <label class="f" for="pjD">写真-大分類</label>
-        <select id="pjD"><option>工事</option><option>測量</option><option>調査</option><option>地質</option><option>広報</option><option>設計</option><option>その他</option></select>
       </div>
       <div class="card">
         <h3 style="margin-top:0">画質</h3>
@@ -438,6 +440,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
     <button class="edb" id="edDesign">🎨 色</button>
     <button class="edb" id="edClass">🗂 分類</button>
   </div>
+  <div class="edbar"><label for="edKubun">写真区分</label><select id="edKubun"></select><span class="edstate" id="edState"></span></div>
   <div class="edmain">
     <div class="edwrap" id="edWrap"><canvas id="edCanvas"></canvas><div id="edPkBox"></div><div id="edInline"></div><div class="eddrop" id="edDrop" hidden></div></div>
     <div class="edside">
@@ -611,7 +614,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
 'use strict';
 /* ===================== 定数 ===================== */
 const FONT = '"Hiragino Sans","Noto Sans JP","Yu Gothic","Meiryo",sans-serif';
-const KUBUN = ['着手前及び完成写真','施工状況写真','安全管理写真','使用材料写真','品質管理写真','出来形管理写真','災害写真','事故写真','その他'];
+const KUBUN = ['着手前及び完成写真','施工状況写真','出来形管理写真','品質管理写真','使用材料写真','安全管理写真','その他'];
 const FIELD_LABEL = {kouji:'工事名',koushu:'工種',shubetsu:'種別',saibetsu:'細別',sokuten:'撮影箇所',date:'撮影日',sekou:'施工者',hacchu:'発注者',zairyo:'材料名',kikaku:'規格',suryo:'数量',kakunin:'確認項目',tachiai:'立会者'};
 // top: 上の行 / main: 中央に大きく書く文字（日付は右下） / table: 中央を表にする / bottom: 下の行
 const TEMPLATES = [
@@ -800,6 +803,7 @@ function loadBoard(){
     board.v=3;
   }
   board.blocks=normalizeBlocks(board.blocks);
+  if(!KUBUN.includes(board.kubun)) board.kubun=board.kubun?'その他':'施工状況写真';
 }
 let PROJ_OVR=null, DATE_OVR=null;  // 撮影済み写真の黒板を直しているときの工事名など・撮影日
 function saveBoard(){ if(ED&&ED.photo) return; LS.set('board_'+curPj, board); }
@@ -1153,7 +1157,7 @@ function buildMeta(d,W,H){
   return {
     id:uid(), pj:curPj, ts:d.getTime(), w:W, h:H,
     tpl: board.state==='着工前'?'before' : board.state==='完成'?'after' : 'custom', tplName:board.pname||'黒板',
-    daibunrui:proj().daibunrui||'工事', kubun:board.kubun||'施工状況写真', state:board.state||'',
+    daibunrui:'工事', kubun:board.kubun||'施工状況写真', state:board.state||'',
     koushu:(v.koushu||'').replace(/\s+/g,''), shubetsu:(v.shubetsu||'').replace(/\s+/g,''), saibetsu:(v.saibetsu||'').replace(/\s+/g,''), sokuten:v.sokuten||'',
     naiyou:(mainText(board)||'').replace(/\s+/g,' ').trim(), title:photoTitle(board),
     values:Object.fromEntries((board.blocks||[]).filter(x=>x.t==='row').map(r=>[r.label,rowValue(board,r,d)])),
@@ -1693,7 +1697,7 @@ function fieldGet(h){
 function fieldSet(h,v){
   const bl=board.blocks[h.bi], p=PROJ_OVR||projects.find(p=>p.id===curPj);
   if(h.k==='label') bl.label=v;
-  else if(h.k==='main') bl.text=v;
+  else if(h.k==='main'){ bl.text=v; autoKubunFromMain(v); }
   else if(h.k==='cell'){ if(h.r<0) bl.head[h.c]=v; else bl.rows[h.r]['abc'[h.c]]=v; }
   else { const k=bl.key||'free';
     if(k==='free') bl.value=v;
@@ -1731,7 +1735,19 @@ function redrawEditOnly(){ // 入力中は入力欄を残したまま黒板だ�
 }
 function commitInline(){ if(!ED.inline) return; ED.inline=null; $('#edInline').innerHTML=''; renderEdit(); renderShootInfo(); }
 // 右側：選んだ項目の操作
+function autoKubunFromMain(v){
+  const s=String(v||'').replace(/\s+/g,'');
+  if(/^(着工前|着手前|施工前)$/.test(s)){ board.state='着工前'; board.kubun='着手前及び完成写真'; }
+  else if(/^(完了|完成|施工後)$/.test(s)){ board.state='完成'; board.kubun='着手前及び完成写真'; }
+  else if(board.state){ board.state=''; if(board.kubun==='着手前及び完成写真') board.kubun='施工状況写真'; }
+}
+function renderEdBar(){
+  const s=$('#edKubun'); s.innerHTML=KUBUN.map(k=>`<option${board.kubun===k?' selected':''}>${k}</option>`).join('');
+  $('#edState').textContent= board.state ? (board.state==='着工前'?'対比：着工前':'対比：完成（着工前と組み合わせ）') : '';
+}
+$('#edKubun').onchange=e=>{ board.kubun=e.target.value; if(board.kubun!=='着手前及び完成写真') board.state=''; saveBoard(); renderEdBar(); };
 function renderEdSide(){
+  renderEdBar();
   const sel=ED.sel>=0?board.blocks[ED.sel]:null, box=$('#edSel');
   box.hidden=!sel; if(!sel) return;
   const names={row:'項目',main:'説明文',sketch:'絵',table:'表'};
@@ -2109,7 +2125,7 @@ $('#expCsv').onclick=()=>{ const list=photos.slice().sort(cmpPhotos); if(!list.l
 /* ===================== 設定 ===================== */
 function renderSet(){
   const sel=$('#pjSel'); sel.innerHTML=projects.map(p=>`<option value="${p.id}" ${p.id===curPj?'selected':''}>${esc(p.name||'（名称未設定）')}</option>`).join('');
-  const p=proj(); $('#pjN').value=p.name; $('#pjS').value=p.sekou; $('#pjH').value=p.hacchu||''; $('#pjD').value=p.daibunrui||'工事';
+  const p=proj(); $('#pjN').value=p.name; $('#pjS').value=p.sekou; $('#pjH').value=p.hacchu||'';
   $$('#qSeg button').forEach(b=>b.classList.toggle('on',b.dataset.q===prefs.quality));
   $('#optGuideOp').value=prefs.guideOp;
   $('#optDtd').value=prefs.dtd; $('#optKijun').value=prefs.kijun;
@@ -2117,8 +2133,8 @@ function renderSet(){
 }
 $('#pjSel').onchange=async e=>{ curPj=e.target.value; saveProjects(); await switchProject(); renderSet(); };
 $('#pjAdd').onclick=async()=>{ const p={id:uid(),name:'',sekou:proj().sekou||DEFAULT_SEKOU,hacchu:proj().hacchu||'',daibunrui:'工事'}; projects.push(p); curPj=p.id; saveProjects(); await switchProject(); renderSet(); $('#pjN').focus(); };
-['pjN','pjS','pjH','pjD'].forEach(id=>$('#'+id).addEventListener('input',()=>{ const p=projects.find(p=>p.id===curPj); if(!p) return; p.name=$('#pjN').value; p.sekou=$('#pjS').value; p.hacchu=$('#pjH').value; p.daibunrui=$('#pjD').value; saveProjects(); renderHeader(); }));
-$('#pjD').addEventListener('change',()=>$('#pjD').dispatchEvent(new Event('input')));
+['pjN','pjS','pjH'].forEach(id=>$('#'+id).addEventListener('input',()=>{ const p=projects.find(p=>p.id===curPj); if(!p) return; p.name=$('#pjN').value; p.sekou=$('#pjS').value; p.hacchu=$('#pjH').value; saveProjects(); renderHeader(); }));
+
 $$('#qSeg button').forEach(b=>b.onclick=()=>{ prefs.quality=b.dataset.q; savePrefs(); renderSet(); });
 $('#optGuideOp').oninput=e=>{ prefs.guideOp=+e.target.value; savePrefs(); };
 $('#optDtd').onchange=e=>{ prefs.dtd=e.target.value; prefs.kijun=prefs.dtd==='04'?'土木201603-01':'土木202303-01'; savePrefs(); renderSet(); };
