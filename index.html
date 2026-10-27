@@ -417,12 +417,6 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
         <div class="toggle"><div>撮影済みの写真を取り込む<div class="muted">いまの黒板を合成して保存します</div></div><button class="btn" id="useImport" style="flex:none">選ぶ</button></div>
       </div>
       <div class="card">
-        <h3 style="margin-top:0">書き出し形式</h3>
-        <label class="f" for="optDtd">PHOTO.XMLの形式</label>
-        <select id="optDtd"><option value="05">PHOTO05（令和5年3月 基準）</option><option value="04">PHOTO04（平成28年3月 旧基準）</option></select>
-        <label class="f" for="optKijun">適用要領基準</label>
-        <input type="text" id="optKijun">      </div>
-      <div class="card">
         <h3 style="margin-top:0">データ</h3>
         <p class="muted" id="storeInfo">写真はこの端末のブラウザ内に保存されます。こまめに書き出してください。</p>
         <button class="btn danger block" id="delExported">書き出し済みの写真を端末から削除</button>
@@ -568,7 +562,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
   <div class="note" style="margin-top:8px">📲 <b>上のアドレス欄を消して全画面で使うには</b>：iPhoneはSafariの共有ボタン →「ホーム画面に追加」、Androidはメニュー（︙）→「ホーム画面に追加」または「アプリをインストール」。ホーム画面のアイコンから開くと全画面になります。</div>
   <div class="note" style="margin-top:8px">✏️ <b>撮影後に黒板の文字を直すには</b>：メニュー →「撮影した写真」→ 写真を選んで「黒板の文字を直す」。電子納品しない写真での利用を想定しています。電子納品で提出する写真の黒板を変える場合は、発注者と協議のうえ行ってください。</div>
   <div class="note" style="margin-top:8px">🔄 <b>縦向きに持ったまま開いた場合</b>：画面が横向きの配置で表示されます。上下が逆さまなら、左の「上下反転」を押してください。</div>
-  <div class="note" style="margin-top:8px">📤 撮り終わったら「書き出し」→「電子納品形式」でZIPを作り、写管屋に取り込みます。</div>
+  <div class="note" style="margin-top:8px">📤 撮り終わったら「書き出し」で写真を保存し、写管屋にドラッグします。写真に分類が入っているので自動で振り分けられます。</div>
   <div class="sticky-go"><button class="btn pri block" data-close>はじめる</button></div>
 </div></div>
 
@@ -2199,38 +2193,10 @@ $('#expAll').onchange=()=>renderExp();
 $('#expSelAll').onclick=()=>{ photos.filter(p=>$('#expAll').checked||!p.exported).forEach(p=>expSel.add(p.id)); renderExp(); };
 $('#expSelNone').onclick=()=>{ expSel.clear(); renderExp(); };
 function x(s){ return esc(s).replace(/&#39;/g,'&apos;'); }
-function buildPhotoXml(list){
-  const v=prefs.dtd, desc=v==='04'?'請負者説明文':'受注者説明文';
-  let s=`<?xml version="1.0" encoding="Shift_JIS"?>\r\n<!DOCTYPE photodata SYSTEM "PHOTO${v}.DTD">\r\n<photodata DTD_version="${v}">\r\n`;
-  s+=`<基礎情報>\r\n<写真フォルダ名>PHOTO/PIC</写真フォルダ名>\r\n<適用要領基準>${x(prefs.kijun)}</適用要領基準>\r\n</基礎情報>\r\n`;
-  list.forEach((p,i)=>{
-    // 写真タイトルは必須。空なら撮影箇所・工種などからつくる
-    const title=(p.title||'').trim()||[p.koushu,p.shubetsu,p.sokuten,p.state].filter(Boolean).join(' ')||p.kubun||'工事写真';
-    const kanri=p.rows&&p.rows.length?p.rows.filter(r=>r.a||r.b||r.c).map(r=>{ const df=p.tableHead[3]?calcDiff(r.b,r.c):''; return `${r.a} ${p.tableHead[1]}${r.b} ${p.tableHead[2]}${r.c}`+(df?` ${p.tableHead[3]}${df}`:''); }).join(' / '):'';
-    s+=`<写真情報>\r\n<写真ファイル情報>\r\n<シリアル番号>${i+1}</シリアル番号>\r\n<写真ファイル名>${p._file}</写真ファイル名>\r\n<メディア番号>1</メディア番号>\r\n</写真ファイル情報>\r\n`;
-    const opt=(tag,v)=>String(v||'').trim()?`<${tag}>${x(String(v).trim())}</${tag}>\r\n`:''; // 空の項目は書かない（写管屋で空の分類ができないように）
-    s+=`<撮影工種区分>\r\n<写真-大分類>${x(p.daibunrui||'工事')}</写真-大分類>\r\n${opt('写真区分',p.kubun)}${opt('工種',p.koushu)}${opt('種別',p.shubetsu)}${opt('細別',p.saibetsu)}<写真タイトル>${x(title)}</写真タイトル>\r\n</撮影工種区分>\r\n`;
-    s+=`<撮影情報>\r\n${opt('撮影箇所',p.sokuten)}<撮影年月日>${isoDate(new Date(p.ts))}</撮影年月日>\r\n</撮影情報>\r\n`;
-    s+=`<代表写真>${p.rep?1:0}</代表写真>\r\n<提出頻度写真>0</提出頻度写真>\r\n${opt('施工管理値',kanri)}${opt(desc,p.naiyou)}</写真情報>\r\n`;
-  });
-  return s+'</photodata>\r\n';
-}
-function buildDtd(){
-  const v=prefs.dtd, desc=v==='04'?'請負者説明文':'受注者説明文';
-  return `<!-- PHOTO${v}.DTD -->\r\n<!ELEMENT photodata (基礎情報,写真情報+,ソフトメーカ用TAG*)>\r\n<!ATTLIST photodata DTD_version CDATA #FIXED "${v}">\r\n`+
-  `<!ELEMENT 基礎情報 (写真フォルダ名,参考図フォルダ名?,適用要領基準)>\r\n<!ELEMENT 写真フォルダ名 (#PCDATA)>\r\n<!ELEMENT 参考図フォルダ名 (#PCDATA)>\r\n<!ELEMENT 適用要領基準 (#PCDATA)>\r\n`+
-  `<!ELEMENT 写真情報 (写真ファイル情報,撮影工種区分,付加情報*,撮影情報,代表写真,提出頻度写真,施工管理値?,${desc}?)>\r\n`+
-  `<!ELEMENT 写真ファイル情報 (シリアル番号,写真ファイル名,写真ファイル日本語名?,メディア番号)>\r\n<!ELEMENT シリアル番号 (#PCDATA)>\r\n<!ELEMENT 写真ファイル名 (#PCDATA)>\r\n<!ELEMENT 写真ファイル日本語名 (#PCDATA)>\r\n<!ELEMENT メディア番号 (#PCDATA)>\r\n`+
-  `<!ELEMENT 撮影工種区分 (写真-大分類,写真区分?,工種?,種別?,細別?,写真タイトル,工種区分予備*)>\r\n<!ELEMENT 写真-大分類 (#PCDATA)>\r\n<!ELEMENT 写真区分 (#PCDATA)>\r\n<!ELEMENT 工種 (#PCDATA)>\r\n<!ELEMENT 種別 (#PCDATA)>\r\n<!ELEMENT 細別 (#PCDATA)>\r\n<!ELEMENT 写真タイトル (#PCDATA)>\r\n<!ELEMENT 工種区分予備 (#PCDATA)>\r\n`+
-  `<!ELEMENT 付加情報 (参考図ファイル名?,参考図ファイル日本語名?,参考図タイトル?,付加情報予備*)>\r\n<!ELEMENT 参考図ファイル名 (#PCDATA)>\r\n<!ELEMENT 参考図ファイル日本語名 (#PCDATA)>\r\n<!ELEMENT 参考図タイトル (#PCDATA)>\r\n<!ELEMENT 付加情報予備 (#PCDATA)>\r\n`+
-  `<!ELEMENT 撮影情報 (撮影箇所?,撮影年月日)>\r\n<!ELEMENT 撮影箇所 (#PCDATA)>\r\n<!ELEMENT 撮影年月日 (#PCDATA)>\r\n<!ELEMENT 代表写真 (#PCDATA)>\r\n<!ELEMENT 提出頻度写真 (#PCDATA)>\r\n<!ELEMENT 施工管理値 (#PCDATA)>\r\n<!ELEMENT ${desc} (#PCDATA)>\r\n<!ELEMENT ソフトメーカ用TAG (#PCDATA)>\r\n`;
-}
 async function markExported(list){ for(const p of list){ p.exported=true; await DB.put(p); } initExpSel(); renderExp(); }
-function zipName(kind){ return `${dotDate(new Date())}_${kind}.zip`; }
-// 保存先を聞いて保存する（iPhone：共有→「"ファイル"に保存」／パソコン：保存ダイアログ／それ以外：ダウンロード）
+// 保存先を聞いて保存する（iPhone：共有→「"ファイル"に保存」／それ以外：ダウンロード）
 // 戻り値：true＝保存した、false＝やめた
-async function saveAs(blob,name,picker){
-  if(picker){ try{ const w=await picker.createWritable(); await w.write(blob); await w.close(); return true; }catch(e){ return false; } }
+async function saveAs(blob,name){
   const file=new File([blob],name,{type:blob.type||'application/zip'});
   if(navigator.canShare&&navigator.canShare({files:[file]})){
     try{ await navigator.share({files:[file],title:name}); return true; }
@@ -2244,20 +2210,28 @@ async function saveAs(blob,name,picker){
 }
 $('#expXml').onclick=async()=>{
   const list=exportTargets(); if(!list.length){ toast('書き出す写真を選んでください',2000); return; }
-  const name=zipName('電子納品');
-  // パソコン（Chrome・Edge）は先に保存先を聞く（押した直後でないと聞けないため）
-  let picker=null;
-  if(window.showSaveFilePicker&&!(navigator.canShare&&/iPhone|iPad|Android/i.test(navigator.userAgent))){
-    try{ picker=await window.showSaveFilePicker({suggestedName:name,types:[{description:'ZIP',accept:{'application/zip':['.zip']}}]}); }
-    catch(e){ if(e.name==='AbortError') return; picker=null; }
+  // 書き出した日の名前のフォルダー（例：2026.10.27）に、写真だけを直接入れる。
+  // 写真の名前は撮影日（同じ日の2枚目からは 2026.10.27_2.jpg …）。分類情報は写真そのものに入っている
+  const folder=dotDate(new Date()), used=new Set();
+  const nameOf=p=>{ const base=dotDate(new Date(p.ts)); let n=`${base}.jpg`, i=2; while(used.has(n)) n=`${base}_${i++}.jpg`; used.add(n); return n; };
+  // パソコン（Chrome・Edge）：保存する場所を選ぶと、そこに日付のフォルダーを作って写真を入れる
+  if(window.showDirectoryPicker&&!/iPhone|iPad|Android/i.test(navigator.userAgent)){
+    let root; try{ root=await window.showDirectoryPicker({mode:'readwrite'}); }catch(e){ if(e.name==='AbortError') return; root=null; }
+    if(root){
+      toast('保存中…',30000);
+      try{
+        const dir=await root.getDirectoryHandle(folder,{create:true});
+        for await(const k of dir.keys()) used.add(k); // すでに入っている写真は上書きしない
+        for(const p of list){ const fh=await dir.getFileHandle(nameOf(p),{create:true}); const w=await fh.createWritable(); await w.write(await photoBytes(p)); await w.close(); }
+      }catch(e){ toast('保存できませんでした（'+(e.name||'error')+'）',3000); return; }
+      await markExported(list); toast(`「${folder}」フォルダーに${list.length}枚保存しました`,2600); return;
+    }
   }
+  // iPhoneなど：ZIPをファイルアプリに保存→タップすると「${folder}」フォルダーになり、写真が直接入っている
   toast('作成中…',30000);
   const files=[];
-  for(let i=0;i<list.length;i++){ const p=list[i]; p._file=`P${String(i+1).padStart(7,'0')}.JPG`; files.push({name:`PHOTO/PIC/${p._file}`,data:await photoBytes(p),date:new Date(p.ts)}); }
-  files.unshift({name:`PHOTO/PHOTO${prefs.dtd}.DTD`,data:sjis(buildDtd())});
-  files.unshift({name:'PHOTO/PHOTO.XML',data:sjis(buildPhotoXml(list))});
-  list.forEach(p=>delete p._file);
-  const ok=await saveAs(makeZip(files),name,picker);
+  for(const p of list) files.push({name:nameOf(p),data:await photoBytes(p),date:new Date(p.ts)});
+  const ok=await saveAs(makeZip(files),`${folder}.zip`);
   if(!ok){ toast('保存をやめました'); return; }
   await markExported(list); toast(`${list.length}枚を書き出しました`);
 };
@@ -2268,7 +2242,7 @@ function renderSet(){
   const p=proj(); $('#pjN').value=p.name; $('#pjS').value=p.sekou; $('#pjH').value=p.hacchu||'';
   $$('#qSeg button').forEach(b=>b.classList.toggle('on',b.dataset.q===prefs.quality));
   $('#optGuideOp').value=prefs.guideOp;
-  $('#optDtd').value=prefs.dtd; $('#optKijun').value=prefs.kijun;  if(navigator.storage?.estimate) navigator.storage.estimate().then(e=>{ $('#storeInfo').textContent=`写真はこの端末のブラウザ内に保存されます（使用量 約${Math.round((e.usage||0)/1048576)}MB）。こまめに書き出してください。`; }).catch(()=>{});
+  if(navigator.storage?.estimate) navigator.storage.estimate().then(e=>{ $('#storeInfo').textContent=`写真はこの端末のブラウザ内に保存されます（使用量 約${Math.round((e.usage||0)/1048576)}MB）。こまめに書き出してください。`; }).catch(()=>{});
 }
 $('#pjSel').onchange=async e=>{ curPj=e.target.value; saveProjects(); await switchProject(); renderSet(); };
 $('#pjAdd').onclick=async()=>{ const p={id:uid(),name:'',sekou:proj().sekou||DEFAULT_SEKOU,hacchu:proj().hacchu||'',daibunrui:'工事'}; projects.push(p); curPj=p.id; saveProjects(); await switchProject(); renderSet(); $('#pjN').focus(); };
@@ -2276,8 +2250,7 @@ $('#pjAdd').onclick=async()=>{ const p={id:uid(),name:'',sekou:proj().sekou||DEF
 
 $$('#qSeg button').forEach(b=>b.onclick=()=>{ prefs.quality=b.dataset.q; savePrefs(); renderSet(); releaseCam(); }); // 次に撮影画面へ戻ったとき、新しい画質に合った解像度でカメラを起動する
 $('#optGuideOp').oninput=e=>{ prefs.guideOp=+e.target.value; savePrefs(); };
-$('#optDtd').onchange=e=>{ prefs.dtd=e.target.value; prefs.kijun=prefs.dtd==='04'?'土木201603-01':'土木202303-01'; savePrefs(); renderSet(); };
-$('#optKijun').oninput=e=>{ prefs.kijun=e.target.value; savePrefs(); };$('#useNative').onclick=()=>$('#fileCap').click();
+$('#useNative').onclick=()=>$('#fileCap').click();
 $('#useImport').onclick=()=>$('#fileImp').click();
 $('#delExported').onclick=async()=>{ const ex=photos.filter(p=>p.exported); if(!ex.length){ toast('書き出し済みの写真はありません'); return; } if(!await askConfirm(`書き出し済みの写真 ${ex.length}枚 を端末から削除しますか？（書き出したZIPは残ります）`)) return; for(const p of ex) await DB.del(p.id); photos=photos.filter(p=>!p.exported); renderSet(); setLastThumb(); toast('削除しました'); };
 
@@ -2341,7 +2314,7 @@ document.addEventListener('visibilitychange',()=>{ if(document.hidden) stopCam()
   // ホーム画面に追加したとき、電波がなくても開けるようにする
   if('serviceWorker' in navigator && location.protocol==='https:' && window.top===window.self) navigator.serviceWorker.register('sw.js').catch(()=>{});
 })();
-window.KP={composePhoto,storePhoto,buildPhotoXml,sjis,makeZip,photos:()=>photos,board:()=>board};
+window.KP={composePhoto,storePhoto,sjis,makeZip,photos:()=>photos,board:()=>board};
 </script>
 </body>
 </html>
