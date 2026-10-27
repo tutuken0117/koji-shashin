@@ -373,35 +373,12 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
 
     <!-- 出力 -->
     <section class="view" id="v-exp">
-      <h2>写真を書き出す（写管屋へ取り込み）</h2>
+      <h2>書き出し</h2>
       <div class="card">
         <div id="expStat" class="muted"></div>
-        <div class="toggle"><div>まだ書き出していない写真だけ<div class="muted">オフにすると全部の写真を書き出します</div></div><label class="sw"><input type="checkbox" id="expOnlyNew" checked><span></span></label></div>
-      </div>
-      <div class="card">
-        <h3 style="margin-top:0">① 写管屋取り込み用（おすすめ）</h3>
-        <p class="muted">国土交通省「デジタル写真管理情報基準」の形式（<code>PHOTO.XML</code>＋写真）で書き出します。写管屋で読み込むと、<b>写真区分・工種・種別・細別・撮影箇所（測点）・撮影日</b>が反映され、自動で振り分けられます。</p>
-        <button class="btn pri block" id="expXml">📦 電子納品形式で書き出す（ZIP）</button>
-      </div>
-      <div class="card">
-        <h3 style="margin-top:0">② 工種ごとのフォルダ分け</h3>
-        <p class="muted">「写真区分／工種／種別／細別」のフォルダに振り分けたZIPを作ります。パソコンでの確認や、XML取り込みに対応していないソフト用です。</p>
-        <button class="btn block" id="expDir">🗂 フォルダ分けで書き出す（ZIP）</button>
-      </div>
-      <div class="card">
-        <h3 style="margin-top:0">③ 一覧表（CSV）</h3>
-        <button class="btn block" id="expCsv">📄 写真一覧をCSVで書き出す</button>
-      </div>
-      <div class="card">
-        <h3 style="margin-top:0">写管屋での取り込み手順</h3>
-        <div class="note" style="margin-bottom:10px">⚠ 写真（JPG）を1枚ずつ写管屋にドラッグしても、分類やタイトルは入りません。必ず①のZIPを作り、下の手順で <b>PHOTO.XML</b> から取り込んでください。</div>
-        <ol class="steps">
-          <li>①のZIPをパソコンに移して、右クリック →「すべて展開」します。</li>
-          <li>写管屋で工事を開き、メニューの<b>［ファイル］→［保存データ取込］</b>を選びます。</li>
-          <li>展開したフォルダの中の <code>PHOTO</code> フォルダにある <b><code>PHOTO.XML</code></b> を指定します。</li>
-          <li>「今の分類に合成」か「新しい分類として取り込む」を選ぶと、<b>写真区分・工種・種別・細別・写真タイトル・撮影箇所・撮影日</b>が入った状態で振り分けられます。</li>
-        </ol>
-        <p class="muted">※メニュー名は写管屋のバージョンで少し異なることがあります。古いバージョンで読めない場合は「設定」でXMLの形式を「PHOTO04（旧基準）」に変えて書き出してください。</p>
+        <div class="toggle"><div>書き出し済みの写真も入れる</div><label class="sw"><input type="checkbox" id="expAll"><span></span></label></div>
+        <button class="btn pri block" id="expXml" style="margin-top:10px;min-height:60px;font-size:19px">📦 書き出す</button>
+        <p class="muted" style="margin-bottom:0">電子納品形式（PHOTO.XML＋写真）のZIPです。写管屋では［ファイル］→［保存データ取込］で、展開したPHOTOフォルダのPHOTO.XMLを選びます。</p>
       </div>
     </section>
 
@@ -2184,11 +2161,12 @@ function askConfirm(msg,okLabel){
 }
 
 /* ===================== 書き出し ===================== */
-function exportTargets(){ return photos.filter(p=>!$('#expOnlyNew').checked||!p.exported).sort(cmpPhotos); }
+function exportTargets(){ return photos.filter(p=>$('#expAll').checked||!p.exported).sort(cmpPhotos); }
 function renderExp(){
   const all=photos.length, nw=photos.filter(p=>!p.exported).length;
   $('#expStat').innerHTML=`この工事の写真：<b>${all}枚</b>（まだ書き出していない写真：<b>${nw}枚</b>）`;
 }
+$('#expAll').onchange=()=>renderExp();
 function x(s){ return esc(s).replace(/&#39;/g,'&apos;'); }
 function buildPhotoXml(list){
   const v=prefs.dtd, desc=v==='04'?'請負者説明文':'受注者説明文';
@@ -2218,37 +2196,40 @@ function buildDtd(){
 }
 async function markExported(list){ for(const p of list){ p.exported=true; await DB.put(p); } renderExp(); }
 function zipName(kind){ return `${dotDate(new Date())}_${kind}.zip`; }
+// 保存先を聞いて保存する（iPhone：共有→「"ファイル"に保存」／パソコン：保存ダイアログ／それ以外：ダウンロード）
+// 戻り値：true＝保存した、false＝やめた
+async function saveAs(blob,name,picker){
+  if(picker){ try{ const w=await picker.createWritable(); await w.write(blob); await w.close(); return true; }catch(e){ return false; } }
+  const file=new File([blob],name,{type:blob.type||'application/zip'});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){
+    try{ await navigator.share({files:[file],title:name}); return true; }
+    catch(e){
+      if(e.name==='AbortError') return false;
+      // 作成に時間がかかって「タップしてすぐ」でなくなったときは、もう一度押してもらう
+      if(e.name==='NotAllowedError'){ const ok=await askConfirm(`${name} の準備ができました`,'保存先を選ぶ'); if(!ok) return false; try{ await navigator.share({files:[file],title:name}); return true; }catch(e2){ return false; } }
+    }
+  }
+  return await download(blob,name);
+}
 $('#expXml').onclick=async()=>{
-  const list=exportTargets(); if(!list.length){ toast('書き出す写真がありません'); return; }
-  toast('作成中…');
+  const list=exportTargets(); if(!list.length){ toast('書き出す写真がありません（書き出し済みも入れるときは上をオン）',2600); return; }
+  const name=zipName('電子納品');
+  // パソコン（Chrome・Edge）は先に保存先を聞く（押した直後でないと聞けないため）
+  let picker=null;
+  if(window.showSaveFilePicker&&!(navigator.canShare&&/iPhone|iPad|Android/i.test(navigator.userAgent))){
+    try{ picker=await window.showSaveFilePicker({suggestedName:name,types:[{description:'ZIP',accept:{'application/zip':['.zip']}}]}); }
+    catch(e){ if(e.name==='AbortError') return; picker=null; }
+  }
+  toast('作成中…',30000);
   const files=[];
   for(let i=0;i<list.length;i++){ const p=list[i]; p._file=`P${String(i+1).padStart(7,'0')}.JPG`; files.push({name:`PHOTO/PIC/${p._file}`,data:await photoBytes(p),date:new Date(p.ts)}); }
   files.unshift({name:`PHOTO/PHOTO${prefs.dtd}.DTD`,data:sjis(buildDtd())});
   files.unshift({name:'PHOTO/PHOTO.XML',data:sjis(buildPhotoXml(list))});
-  download(makeZip(files),zipName('電子納品'));
   list.forEach(p=>delete p._file);
+  const ok=await saveAs(makeZip(files),name,picker);
+  if(!ok){ toast('保存をやめました'); return; }
   await markExported(list); toast(`${list.length}枚を書き出しました`);
 };
-$('#expDir').onclick=async()=>{
-  const list=exportTargets(); if(!list.length){ toast('書き出す写真がありません'); return; }
-  const files=[], used=new Set();
-  for(const p of list){
-    const dir=[p.kubun,p.koushu||'工種なし',p.shubetsu||'種別なし',p.saibetsu].filter(Boolean).map(safeName).join('/');
-    const d=new Date(p.ts), base=dotDate(d); // 同じ日の写真は 2026.10.23.jpg、2026.10.23_2.jpg … と連番
-    let name=`${dir}/${base}.jpg`, n=2; while(used.has(name)) name=`${dir}/${base}_${n++}.jpg`; used.add(name);
-    files.push({name,data:await photoBytes(p),date:d});
-  }
-  files.push({name:'写真一覧.csv',data:csvBytes(list)});
-  download(makeZip(files),zipName('工種別'));
-  await markExported(list); toast(`${list.length}枚を書き出しました`);
-};
-function csvBytes(list){
-  const q=v=>`"${String(v??'').replace(/"/g,'""')}"`;
-  const rows=[['撮影日','時刻','写真-大分類','写真区分','工種','種別','細別','測点','写真タイトル','黒板','区分','施工管理値','内容','代表写真','画素数']];
-  list.forEach(p=>{ const d=new Date(p.ts); rows.push([isoDate(d),`${pad2(d.getHours())}:${pad2(d.getMinutes())}`,p.daibunrui,p.kubun,p.koushu,p.shubetsu,p.saibetsu,p.sokuten,p.title,p.tplName,p.state,(p.rows||[]).map(r=>[r.a,r.b,r.c].join(' ')).join(' / '),p.naiyou,p.rep?'○':'',`${p.w}x${p.h}`]); });
-  return new TextEncoder().encode('﻿'+rows.map(r=>r.map(q).join(',')).join('\r\n'));
-}
-$('#expCsv').onclick=()=>{ const list=photos.slice().sort(cmpPhotos); if(!list.length){ toast('写真がありません'); return; } download(new Blob([csvBytes(list)],{type:'text/csv'}),`${dotDate(new Date())}_写真一覧.csv`); };
 
 /* ===================== 設定 ===================== */
 function renderSet(){
