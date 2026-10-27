@@ -1075,6 +1075,7 @@ const video=$('#video'), overlay=$('#overlay'), cam=$('#cam');
 let stream=null, camReady=false, camFailed=false;
 async function startCam(){
   const msg=$('#camMsg');
+  clearTimeout(deepTimer);
   // 一時停止していたカメラは、そのまま再開する（起動し直さないので、カメラの許可を聞かれない）
   if(stream){
     const vt=stream.getVideoTracks();
@@ -1090,7 +1091,9 @@ async function startCam(){
   msg.style.display='flex'; msg.innerHTML='<div>カメラを準備しています…</div>';
   try{
     if(!navigator.mediaDevices?.getUserMedia) throw new Error('nosupport');
-    stream=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1440},frameRate:{ideal:24,max:30}}});
+    // カメラの解像度は保存する写真の大きさに合わせる（100万画素なら1280×960。大きすぎると電池を使う）
+    const cw=Math.max(1280,outSize().W);
+    stream=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:'environment'},width:{ideal:cw},height:{ideal:Math.round(cw*3/4)},frameRate:{ideal:24,max:30}}});
     video.srcObject=stream; await video.play().catch(()=>{});
     await new Promise(r=>{ if(video.videoWidth) r(); else video.onloadedmetadata=()=>r(); });
     camReady=true; camFailed=false; msg.style.display='none'; fitCam(); kickIdle();
@@ -1101,8 +1104,15 @@ async function startCam(){
     msg.style.pointerEvents='none';
   }
 }
-// カメラは止めずに一時停止（映像の処理を止めて電力を抑える。再開時に許可を聞かれない）
-function stopCam(){ if(stream){ stream.getTracks().forEach(t=>t.enabled=false); video.pause(); } camReady=false; clearTimeout(idleTimer); }
+// 撮影画面を離れたら、まず一時停止（すぐ戻ればカメラの許可を聞かれずに再開できる）。
+// 3分たっても戻らなければカメラを完全に切って電池を守る
+let deepTimer=null;
+function stopCam(){
+  if(stream){ stream.getTracks().forEach(t=>t.enabled=false); video.pause(); }
+  camReady=false; clearTimeout(idleTimer);
+  clearTimeout(deepTimer); deepTimer=setTimeout(releaseCam,180000);
+}
+function releaseCam(){ clearTimeout(deepTimer); if(camReady) return; if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; } video.srcObject=null; }
 // 省電力：撮影画面で2分間なにも操作しなければカメラを止める（画面をタップすると再開）
 let idleTimer=null, idleStopped=false;
 function kickIdle(){ clearTimeout(idleTimer); if(curView!=='shoot') return; idleTimer=setTimeout(()=>{ if(curView==='shoot'&&stream&&!document.querySelector('.modal.on')){ stopCam(); idleStopped=true; const m=$('#camMsg'); m.style.display='flex'; m.style.pointerEvents='none'; m.innerHTML='<div style="font-size:17px;color:#fff"><b>省電力のためカメラを一時停止しています</b></div><div>画面をタップすると再開します</div>'; } },120000); }
@@ -2243,7 +2253,7 @@ $('#pjSel').onchange=async e=>{ curPj=e.target.value; saveProjects(); await swit
 $('#pjAdd').onclick=async()=>{ const p={id:uid(),name:'',sekou:proj().sekou||DEFAULT_SEKOU,hacchu:proj().hacchu||'',daibunrui:'工事'}; projects.push(p); curPj=p.id; saveProjects(); await switchProject(); renderSet(); $('#pjN').focus(); };
 ['pjN','pjS','pjH'].forEach(id=>$('#'+id).addEventListener('input',()=>{ const p=projects.find(p=>p.id===curPj); if(!p) return; p.name=$('#pjN').value; p.sekou=$('#pjS').value; p.hacchu=$('#pjH').value; saveProjects(); renderHeader(); }));
 
-$$('#qSeg button').forEach(b=>b.onclick=()=>{ prefs.quality=b.dataset.q; savePrefs(); renderSet(); });
+$$('#qSeg button').forEach(b=>b.onclick=()=>{ prefs.quality=b.dataset.q; savePrefs(); renderSet(); releaseCam(); }); // 次に撮影画面へ戻ったとき、新しい画質に合った解像度でカメラを起動する
 $('#optGuideOp').oninput=e=>{ prefs.guideOp=+e.target.value; savePrefs(); };
 $('#optDtd').onchange=e=>{ prefs.dtd=e.target.value; prefs.kijun=prefs.dtd==='04'?'土木201603-01':'土木202303-01'; savePrefs(); renderSet(); };
 $('#optKijun').oninput=e=>{ prefs.kijun=e.target.value; savePrefs(); };$('#useNative').onclick=()=>$('#fileCap').click();

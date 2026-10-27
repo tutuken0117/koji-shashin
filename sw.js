@@ -1,5 +1,6 @@
-// オフラインでも開けるようにするための仕組み（新しい版があればネットから取得、圏外なら保存済みの版を使う）
-const CACHE = 'koji-shashin-v2';
+// オフラインでも開けるようにするための仕組み
+// 保存済みの版をすぐ表示し（圏外や電波が弱くても待たずに起動）、裏でネットから新しい版を取ってきて次回から使う
+const CACHE = 'koji-shashin-v3';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
@@ -11,12 +12,16 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  if (e.request.method !== 'GET') return;
-  e.respondWith(
-    fetch(e.request).then(res => {
-      const copy = res.clone();
-      caches.open(CACHE).then(c => c.put(e.request, copy));
+  const req = e.request;
+  if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
+  const isPage = req.mode === 'navigate';
+  e.respondWith(caches.open(CACHE).then(async c => {
+    const hit = isPage ? await c.match('./index.html') : await c.match(req, { ignoreSearch: true });
+    const update = fetch(req, { cache: 'no-cache' }).then(res => {
+      if (res && res.ok) c.put(isPage ? './index.html' : req, res.clone());
       return res;
-    }).catch(() => caches.match(e.request).then(r => r || caches.match('./index.html')))
-  );
+    }).catch(() => null);
+    if (hit) { e.waitUntil(update); return hit; }
+    return (await update) || (await c.match('./index.html')) || Response.error();
+  }));
 });
