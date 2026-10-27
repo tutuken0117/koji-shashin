@@ -137,6 +137,12 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-
 .th{position:relative;border:0;padding:0;background:#000;border-radius:8px;overflow:hidden;aspect-ratio:4/3}
 .th img{width:100%;height:100%;object-fit:cover;display:block}
 .th span{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(transparent,rgba(0,0,0,.75));color:#fff;font-size:11px;padding:10px 5px 3px;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.expsel{display:flex;gap:8px;margin-top:8px}.expsel .btn{flex:1;min-height:44px}
+#expXml:disabled{opacity:.4}
+#expGrid .th{opacity:.45;outline:3px solid transparent;outline-offset:-3px}
+#expGrid .th.sel{opacity:1;outline-color:#3fa775}
+#expGrid .th.sel::after{content:"✓";position:absolute;top:4px;left:4px;width:26px;height:26px;border-radius:50%;background:#3fa775;color:#06130c;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:16px}
+#expGrid .th b{position:absolute;top:4px;right:4px;font-size:10px;background:rgba(0,0,0,.7);color:#fff;border-radius:6px;padding:0 5px}
 .th i{position:absolute;top:4px;right:4px;font-style:normal;background:#f2b705;color:#000;font-size:10px;font-weight:700;border-radius:6px;padding:0 5px}
 .empty{text-align:center;color:var(--sub);padding:40px 10px}
 .empty .big{font-size:44px}
@@ -376,9 +382,11 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
       <h2>書き出し</h2>
       <div class="card">
         <div id="expStat" class="muted"></div>
-        <div class="toggle"><div>書き出し済みの写真も入れる</div><label class="sw"><input type="checkbox" id="expAll"><span></span></label></div>
+        <div class="toggle"><div>書き出し済みの写真も表示</div><label class="sw"><input type="checkbox" id="expAll"><span></span></label></div>
+        <div class="expsel"><button class="btn" id="expSelAll">すべて選ぶ</button><button class="btn" id="expSelNone">選択をはずす</button></div>
         <button class="btn pri block" id="expXml" style="margin-top:10px;min-height:60px;font-size:19px">📦 書き出す</button>
-        <p class="muted" style="margin-bottom:0">電子納品形式（PHOTO.XML＋写真）のZIPです。写管屋では［ファイル］→［保存データ取込］で、展開したPHOTOフォルダのPHOTO.XMLを選びます。</p>
+        <p class="muted">写真をタップすると、選ぶ・はずすが切り替わります（緑の✓が書き出す写真）。</p>
+        <div class="grid" id="expGrid"></div>
       </div>
     </section>
 
@@ -2171,12 +2179,25 @@ function askConfirm(msg,okLabel){
 }
 
 /* ===================== 書き出し ===================== */
-function exportTargets(){ return photos.filter(p=>$('#expAll').checked||!p.exported).sort(cmpPhotos); }
+// 書き出す写真は自由に選べる（はじめは「まだ書き出していない写真」を全部選んだ状態）
+let expSel=new Set();
+function exportTargets(){ return photos.filter(p=>expSel.has(p.id)).sort(cmpPhotos); }
+function initExpSel(){ expSel=new Set(photos.filter(p=>!p.exported).map(p=>p.id)); }
 function renderExp(){
   const all=photos.length, nw=photos.filter(p=>!p.exported).length;
   $('#expStat').innerHTML=`この工事の写真：<b>${all}枚</b>（まだ書き出していない写真：<b>${nw}枚</b>）`;
+  const shown=photos.filter(p=>$('#expAll').checked||!p.exported||expSel.has(p.id)).sort((a,b)=>b.ts-a.ts);
+  const g=$('#expGrid'); g.innerHTML=shown.length?'':'<p class="muted" style="grid-column:1/-1">まだ書き出していない写真はありません。書き出し済みの写真から選ぶときは、上の「書き出し済みの写真も表示」をオンにしてください。</p>';
+  shown.forEach(p=>{ const b=document.createElement('button'); b.className='th'+(expSel.has(p.id)?' sel':'');
+    b.innerHTML=`<img loading="lazy" src="${objUrl(p,'thumb')}" alt=""><span>${esc(p.sokuten||'')} ${esc(p.state||'')}</span>${p.exported?'<b>書き出し済</b>':''}`;
+    b.onclick=()=>{ expSel.has(p.id)?expSel.delete(p.id):expSel.add(p.id); b.classList.toggle('sel',expSel.has(p.id)); expCount(); };
+    g.appendChild(b); });
+  expCount();
 }
+function expCount(){ const n=photos.filter(p=>expSel.has(p.id)).length; $('#expXml').textContent=n?`📦 書き出す（${n}枚）`:'📦 書き出す'; $('#expXml').disabled=!n; }
 $('#expAll').onchange=()=>renderExp();
+$('#expSelAll').onclick=()=>{ photos.filter(p=>$('#expAll').checked||!p.exported).forEach(p=>expSel.add(p.id)); renderExp(); };
+$('#expSelNone').onclick=()=>{ expSel.clear(); renderExp(); };
 function x(s){ return esc(s).replace(/&#39;/g,'&apos;'); }
 function buildPhotoXml(list){
   const v=prefs.dtd, desc=v==='04'?'請負者説明文':'受注者説明文';
@@ -2204,7 +2225,7 @@ function buildDtd(){
   `<!ELEMENT 付加情報 (参考図ファイル名?,参考図ファイル日本語名?,参考図タイトル?,付加情報予備*)>\r\n<!ELEMENT 参考図ファイル名 (#PCDATA)>\r\n<!ELEMENT 参考図ファイル日本語名 (#PCDATA)>\r\n<!ELEMENT 参考図タイトル (#PCDATA)>\r\n<!ELEMENT 付加情報予備 (#PCDATA)>\r\n`+
   `<!ELEMENT 撮影情報 (撮影箇所?,撮影年月日)>\r\n<!ELEMENT 撮影箇所 (#PCDATA)>\r\n<!ELEMENT 撮影年月日 (#PCDATA)>\r\n<!ELEMENT 代表写真 (#PCDATA)>\r\n<!ELEMENT 提出頻度写真 (#PCDATA)>\r\n<!ELEMENT 施工管理値 (#PCDATA)>\r\n<!ELEMENT ${desc} (#PCDATA)>\r\n<!ELEMENT ソフトメーカ用TAG (#PCDATA)>\r\n`;
 }
-async function markExported(list){ for(const p of list){ p.exported=true; await DB.put(p); } renderExp(); }
+async function markExported(list){ for(const p of list){ p.exported=true; await DB.put(p); } initExpSel(); renderExp(); }
 function zipName(kind){ return `${dotDate(new Date())}_${kind}.zip`; }
 // 保存先を聞いて保存する（iPhone：共有→「"ファイル"に保存」／パソコン：保存ダイアログ／それ以外：ダウンロード）
 // 戻り値：true＝保存した、false＝やめた
@@ -2222,7 +2243,7 @@ async function saveAs(blob,name,picker){
   return await download(blob,name);
 }
 $('#expXml').onclick=async()=>{
-  const list=exportTargets(); if(!list.length){ toast('書き出す写真がありません（書き出し済みも入れるときは上をオン）',2600); return; }
+  const list=exportTargets(); if(!list.length){ toast('書き出す写真を選んでください',2000); return; }
   const name=zipName('電子納品');
   // パソコン（Chrome・Edge）は先に保存先を聞く（押した直後でないと聞けないため）
   let picker=null;
@@ -2278,7 +2299,7 @@ function show(v,fromBack){
   document.body.classList.toggle('shooting',v==='shoot');
   applyRotation();
   if(v==='shoot'){ const hc=LS.get('hintCount',0); if(hc<5){ LS.set('hintCount',hc+1); hintUntil=Date.now()+5000; setTimeout(()=>drawOverlay(),5100); } startCam(); fitCam(); renderShootInfo(); try{ screen.orientation?.lock?.('landscape').catch(()=>{}); }catch(e){} } else stopCam();
-  if(v==='list') renderList(); if(v==='cmp') renderCmp(); if(v==='exp') renderExp(); if(v==='set') renderSet();
+  if(v==='list') renderList(); if(v==='cmp') renderCmp(); if(v==='exp'){ initExpSel(); renderExp(); } if(v==='set') renderSet();
 }
 function openMenu(){ openModal('mMenu'); }
 $$('#menuList button').forEach(b=>b.onclick=()=>{ closeModal('mMenu'); if(b.dataset.v==='help') openModal('mHelp'); else show(b.dataset.v); });
