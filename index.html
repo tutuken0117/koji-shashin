@@ -436,11 +436,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
         <label class="f" for="optDtd">PHOTO.XMLの形式</label>
         <select id="optDtd"><option value="05">PHOTO05（令和5年3月 基準）</option><option value="04">PHOTO04（平成28年3月 旧基準）</option></select>
         <label class="f" for="optKijun">適用要領基準</label>
-        <input type="text" id="optKijun">
-        <label class="f" for="optRmeta">写真に入れる分類情報（カメラメモ）の文字コード</label>
-        <select id="optRmeta"><option value="SJIS">SJIS（標準）</option><option value="JIS">JIS</option><option value="ASCII">ASCII</option></select>
-        <p class="muted">写管屋に写真をドラッグしても振り分けられないときに切り替えて試します。</p>
-      </div>
+        <input type="text" id="optKijun">      </div>
       <div class="card">
         <h3 style="margin-top:0">データ</h3>
         <p class="muted" id="storeInfo">写真はこの端末のブラウザ内に保存されます。こまめに書き出してください。</p>
@@ -2102,7 +2098,7 @@ function makeExif(m,d){
   const comment=Object.entries(info).filter(([,v])=>v).map(([k,v])=>`${k}:${v}`).join(' / ');
   const ent=(tag,type,bytes,count)=>({tag,type,bytes,count:count??bytes.length});
   const xpT=ucs2le(m.title), xpC=ucs2le(comment);
-  const ifd0e=()=>[ent(0x0131,2,asciiB('KantanKojiPhoto')),ent(0x0132,2,asciiB(dt)),ent(0x9C9B,1,xpT),ent(0x9C9C,1,xpC)];
+  const ifd0e=()=>[ent(0x010E,2,asciiB('DCP PHOTO')),ent(0x0131,2,asciiB('KantanKojiPhoto')),ent(0x0132,2,asciiB(dt)),ent(0x9C9B,1,xpT),ent(0x9C9C,1,xpC)];
   const uc=new Uint8Array(8+comment.length*2); uc.set(asciiB('UNICODE').subarray(0,7)); for(let i=0;i<comment.length;i++){ const c=comment.charCodeAt(i); uc[8+i*2]=c>>8; uc[9+i*2]=c&255; }
   let i0=ifd([...ifd0e(),ent(0x8769,4,longB(0),1)],8,0);
   const exifOff=8+i0.length;
@@ -2110,28 +2106,18 @@ function makeExif(m,d){
   const ie=ifd([ent(0x9003,2,asciiB(dt)),ent(0x9004,2,asciiB(dt)),ent(0x9286,7,uc),ent(0xA002,4,longB(m.w),1),ent(0xA003,4,longB(m.h),1)],exifOff,0);
   const tiff=u8concat([new Uint8Array([0x4D,0x4D,0,0x2A,0,0,0,8]),i0,ie]);
   const len=2+6+tiff.length;
-  return u8concat([new Uint8Array([0xFF,0xE1,len>>8,len&255,0x45,0x78,0x69,0x66,0,0]),tiff,makeRmeta(m,prefs.rmetaCs||'SJIS')]);
+  return u8concat([new Uint8Array([0xFF,0xE1,len>>8,len&255,0x45,0x78,0x69,0x66,0,0]),tiff,makeXmp(m)]);
 }
-// 写真そのものに分類情報を入れる：リコー「カメラメモ」形式（JPEGのAPP5「RMETA」）。
-// 写管屋はカメラメモ付きの写真をドラッグすると分類情報で振り分けられる。
-// 形式は JACIC 助成研究 第2011-05号「メタデータを活用した写真管理業務の高度化に関する研究」6.3 で公開されているもの
-function makeRmeta(m,cs){
+// 写真そのものに分類情報を入れる（SiteBoxの写真と同じXMPの項目。写管屋はこれを読んで振り分ける）
+// 項目名はSiteBoxの写真に入っていたものに合わせる（「Contructor」の綴りもそのまま）
+function makeXmp(m){
   const P=PROJ_OVR||proj();
-  const kanri=(m.rows||[]).filter(r=>r.a||r.b||r.c).map(r=>[r.a,r.b,r.c].filter(Boolean).join(' ')).join('/');
-  const items=[['工事名称',P.name],['請負者名',P.sekou],['写真区分',m.kubun],['工種',m.koushu],['種別',m.shubetsu],['細別',m.saibetsu],['撮影箇所',m.sokuten],['写真タイトル',m.title],['施工管理値',kanri]];
-  // 項目名は20バイト、内容は32バイトまで（2バイト文字の途中で切らない）
-  const cut=(s,n)=>{ const b=sjis(String(s||'').trim()); let i=0; while(i<b.length){ const st=(b[i]>=0x81&&b[i]<=0x9F)||(b[i]>=0xE0&&b[i]<=0xFC)?2:1; if(i+st>n) break; i+=st; } return b.subarray(0,i); };
-  const area=(id,arr)=>{ const body=u8concat(arr.flatMap(a=>[a,new Uint8Array(1)])), pad=body.length%2, sz=2+body.length+pad; return u8concat([new Uint8Array([id>>8,id&255,sz>>8,sz&255]),body,new Uint8Array(pad)]); };
-  const csB=new Uint8Array(8); csB.set(asciiB(cs).subarray(0,Math.min(8,cs.length)));
-  const n=items.length;
-  const body=u8concat([
-    new Uint8Array([0x52,0x4D,0x45,0x54,0x41,0, 0x4D,0x4D, 1,0, 0,0, 0,0, 0,0x0A]), // "RMETA"・バイト順MM・版1.0・セグメント0・データ位置0x000A
-    new Uint8Array([n>>8,n&255]), csB,
-    area(1,items.map(([k])=>cut(k,20))), area(2,items.map(([,v])=>cut(v,32))),
-    new Uint8Array(4) // 終端
-  ]);
-  const len=body.length+2;
-  return u8concat([new Uint8Array([0xFF,0xE5,len>>8,len&255]),body]);
+  const f=[['ConstructionName',P.name],['Contructor',P.sekou],['LargeClassification',m.daibunrui||'工事'],['PhotoClassification',m.kubun],
+    ['ConstructionType',m.koushu],['MiddleClassification',m.shubetsu],['SmallClassification',m.saibetsu],['Title',m.title]]
+    .filter(([,v])=>String(v||'').trim()).map(([k,v])=>`<photo:${k}>${x(String(v).trim())}</photo:${k}>`).join(' ');
+  const s=`http://ns.adobe.com/xap/1.0/\0<?xpacket begin="﻿" id="W5M0MpCehiHzreSzNTczkc9d"?> <x:xmpmeta xmlns:x="adobe:ns:meta/"> <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"> <rdf:Description rdf:about="" xmlns:photo="http://dcpadv.org/schema/3.0/photoinfo" xmlns:measurement="http://dcpadv.org/schema/3.0/measurement" xmlns:item="http://dcpadv.org/schema/3.0/measurementitem"> ${f} </rdf:Description> </rdf:RDF> </x:xmpmeta> <?xpacket end="w"?>`;
+  const body=new TextEncoder().encode(s), len=body.length+2;
+  return u8concat([new Uint8Array([0xFF,0xE1,len>>8,len&255]),body]);
 }
 // 保存済みの写真も、書き出し時に最新の形式（Exif＋カメラメモ）で付け直す
 async function photoBytes(p){
@@ -2270,8 +2256,7 @@ function renderSet(){
   const p=proj(); $('#pjN').value=p.name; $('#pjS').value=p.sekou; $('#pjH').value=p.hacchu||'';
   $$('#qSeg button').forEach(b=>b.classList.toggle('on',b.dataset.q===prefs.quality));
   $('#optGuideOp').value=prefs.guideOp;
-  $('#optDtd').value=prefs.dtd; $('#optKijun').value=prefs.kijun; $('#optRmeta').value=prefs.rmetaCs||'SJIS';
-  if(navigator.storage?.estimate) navigator.storage.estimate().then(e=>{ $('#storeInfo').textContent=`写真はこの端末のブラウザ内に保存されます（使用量 約${Math.round((e.usage||0)/1048576)}MB）。こまめに書き出してください。`; }).catch(()=>{});
+  $('#optDtd').value=prefs.dtd; $('#optKijun').value=prefs.kijun;  if(navigator.storage?.estimate) navigator.storage.estimate().then(e=>{ $('#storeInfo').textContent=`写真はこの端末のブラウザ内に保存されます（使用量 約${Math.round((e.usage||0)/1048576)}MB）。こまめに書き出してください。`; }).catch(()=>{});
 }
 $('#pjSel').onchange=async e=>{ curPj=e.target.value; saveProjects(); await switchProject(); renderSet(); };
 $('#pjAdd').onclick=async()=>{ const p={id:uid(),name:'',sekou:proj().sekou||DEFAULT_SEKOU,hacchu:proj().hacchu||'',daibunrui:'工事'}; projects.push(p); curPj=p.id; saveProjects(); await switchProject(); renderSet(); $('#pjN').focus(); };
@@ -2280,9 +2265,7 @@ $('#pjAdd').onclick=async()=>{ const p={id:uid(),name:'',sekou:proj().sekou||DEF
 $$('#qSeg button').forEach(b=>b.onclick=()=>{ prefs.quality=b.dataset.q; savePrefs(); renderSet(); });
 $('#optGuideOp').oninput=e=>{ prefs.guideOp=+e.target.value; savePrefs(); };
 $('#optDtd').onchange=e=>{ prefs.dtd=e.target.value; prefs.kijun=prefs.dtd==='04'?'土木201603-01':'土木202303-01'; savePrefs(); renderSet(); };
-$('#optKijun').oninput=e=>{ prefs.kijun=e.target.value; savePrefs(); };
-$('#optRmeta').onchange=e=>{ prefs.rmetaCs=e.target.value; savePrefs(); };
-$('#useNative').onclick=()=>$('#fileCap').click();
+$('#optKijun').oninput=e=>{ prefs.kijun=e.target.value; savePrefs(); };$('#useNative').onclick=()=>$('#fileCap').click();
 $('#useImport').onclick=()=>$('#fileImp').click();
 $('#delExported').onclick=async()=>{ const ex=photos.filter(p=>p.exported); if(!ex.length){ toast('書き出し済みの写真はありません'); return; } if(!await askConfirm(`書き出し済みの写真 ${ex.length}枚 を端末から削除しますか？（書き出したZIPは残ります）`)) return; for(const p of ex) await DB.del(p.id); photos=photos.filter(p=>!p.exported); renderSet(); setLastThumb(); toast('削除しました'); };
 
