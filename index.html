@@ -2225,19 +2225,13 @@ $('#expXml').onclick=async()=>{
       await markExported(list); toast(`「${folder}」フォルダーに${list.length}枚保存しました`,2600); return;
     }
   }
-  // iPhoneなど：写真をそのまま共有の画面へ（ZIPにしない）。フォルダーはiPhoneの決まりで自動では作れないので、
-  // 保存先の画面で作ってもらう。名前に貼り付けられるよう、日付をコピーしておく
-  try{ navigator.clipboard?.writeText(folder).catch(()=>{}); }catch(e){}
-  if(!LS.get('expHint',false)&&navigator.canShare){
-    LS.set('expHint',true);
-    if(!await askConfirm(`保存先の画面で、右上のフォルダー＋ボタンでフォルダーを作り、名前の欄を長押し→「ペースト」で「${folder}」が入ります`,'わかった')) return;
-  }
+  // iPhoneなど：日付だけの名前のZIP（例：2026.10.27.zip）を共有の画面で保存。中は写真だけ
   toast('準備中…',30000);
   const items=[];
   for(const p of list) items.push({name:nameOf(p),data:await photoBytes(p),date:new Date(p.ts)});
-  const files=items.map(f=>new File([f.data],f.name,{type:'image/jpeg',lastModified:f.date.getTime()}));
-  let ok=await shareFiles(files,`写真${files.length}枚`);
-  if(ok===null) ok=await download(makeZip(items),`${folder}.zip`); // 共有できない端末（一部のパソコンのブラウザ）だけZIPで保存
+  const zip=makeZip(items), zn=`${folder}.zip`;
+  let ok=await shareFiles([new File([zip],zn,{type:'application/zip'})],zn);
+  if(ok===null) ok=await download(zip,zn); // 共有できない端末はふつうにダウンロード
   if(!ok){ toast('保存をやめました'); return; }
   await markExported(list); toast(`${list.length}枚を書き出しました`);
 };
