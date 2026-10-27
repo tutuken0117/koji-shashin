@@ -2007,7 +2007,7 @@ async function finishPhotoEdit(){
   renderShootInfo(); renderList(); setLastThumb(); openDetail(p);
 }
 $('#dtReuse').onclick=()=>{ const p=curDetail; Object.assign(board.values,{koushu:p.koushu,shubetsu:p.shubetsu,saibetsu:p.saibetsu,sokuten:p.sokuten}); board.state=p.state||''; board.kubun=p.kubun||board.kubun; saveBoard(); closeModal('mDetail'); show('shoot'); toast('この写真の工種・測点を黒板にセットしました'); };
-$('#dtSave').onclick=async()=>{ const p=curDetail; download(new Blob([await photoBytes(p)],{type:'image/jpeg'}), `${dotDate(new Date(p.ts))}.jpg`); };
+$('#dtSave').onclick=async()=>{ const p=curDetail; const b=await photoBytes(p), n=`${dotDate(new Date(p.ts))}.jpg`; if(await shareFiles([new File([b],n,{type:'image/jpeg'})],'写真')===null) download(new Blob([b],{type:'image/jpeg'}),n); };
 
 /* ===================== 対比 ===================== */
 function pairs(){
@@ -2194,19 +2194,17 @@ $('#expSelAll').onclick=()=>{ photos.filter(p=>$('#expAll').checked||!p.exported
 $('#expSelNone').onclick=()=>{ expSel.clear(); renderExp(); };
 function x(s){ return esc(s).replace(/&#39;/g,'&apos;'); }
 async function markExported(list){ for(const p of list){ p.exported=true; await DB.put(p); } initExpSel(); renderExp(); }
-// 保存先を聞いて保存する（iPhone：共有→「"ファイル"に保存」／それ以外：ダウンロード）
-// 戻り値：true＝保存した、false＝やめた
-async function saveAs(blob,name){
-  const file=new File([blob],name,{type:blob.type||'application/zip'});
-  if(navigator.canShare&&navigator.canShare({files:[file]})){
-    try{ await navigator.share({files:[file],title:name}); return true; }
-    catch(e){
-      if(e.name==='AbortError') return false;
-      // 作成に時間がかかって「タップしてすぐ」でなくなったときは、もう一度押してもらう
-      if(e.name==='NotAllowedError'){ const ok=await askConfirm(`${name} の準備ができました`,'保存先を選ぶ'); if(!ok) return false; try{ await navigator.share({files:[file],title:name}); return true; }catch(e2){ return false; } }
-    }
+// 写真を共有の画面で保存する（iPhone：「"ファイル"に保存」で保存先を選ぶ）。ZIPにはしない。
+// title を付けると iPhone が余計なテキストファイルを作るので付けない。戻り値：true＝保存した、false＝やめた、null＝共有できない端末
+async function shareFiles(files,label){
+  if(!(navigator.canShare&&navigator.canShare({files}))) return null;
+  try{ await navigator.share({files}); return true; }
+  catch(e){
+    if(e.name==='AbortError') return false;
+    // 準備に時間がかかって「タップしてすぐ」でなくなったときは、もう一度押してもらう
+    if(e.name==='NotAllowedError'){ const ok=await askConfirm(`${label}の準備ができました`,'保存先を選ぶ'); if(!ok) return false; try{ await navigator.share({files}); return true; }catch(e2){ return false; } }
+    return false;
   }
-  return await download(blob,name);
 }
 $('#expXml').onclick=async()=>{
   const list=exportTargets(); if(!list.length){ toast('書き出す写真を選んでください',2000); return; }
@@ -2227,11 +2225,19 @@ $('#expXml').onclick=async()=>{
       await markExported(list); toast(`「${folder}」フォルダーに${list.length}枚保存しました`,2600); return;
     }
   }
-  // iPhoneなど：ZIPをファイルアプリに保存→タップすると「${folder}」フォルダーになり、写真が直接入っている
-  toast('作成中…',30000);
-  const files=[];
-  for(const p of list) files.push({name:nameOf(p),data:await photoBytes(p),date:new Date(p.ts)});
-  const ok=await saveAs(makeZip(files),`${folder}.zip`);
+  // iPhoneなど：写真をそのまま共有の画面へ（ZIPにしない）。フォルダーはiPhoneの決まりで自動では作れないので、
+  // 保存先の画面で作ってもらう。名前に貼り付けられるよう、日付をコピーしておく
+  try{ navigator.clipboard?.writeText(folder).catch(()=>{}); }catch(e){}
+  if(!LS.get('expHint',false)&&navigator.canShare){
+    LS.set('expHint',true);
+    if(!await askConfirm(`保存先の画面で、右上のフォルダー＋ボタンでフォルダーを作り、名前の欄を長押し→「ペースト」で「${folder}」が入ります`,'わかった')) return;
+  }
+  toast('準備中…',30000);
+  const items=[];
+  for(const p of list) items.push({name:nameOf(p),data:await photoBytes(p),date:new Date(p.ts)});
+  const files=items.map(f=>new File([f.data],f.name,{type:'image/jpeg',lastModified:f.date.getTime()}));
+  let ok=await shareFiles(files,`写真${files.length}枚`);
+  if(ok===null) ok=await download(makeZip(items),`${folder}.zip`); // 共有できない端末（一部のパソコンのブラウザ）だけZIPで保存
   if(!ok){ toast('保存をやめました'); return; }
   await markExported(list); toast(`${list.length}枚を書き出しました`);
 };
