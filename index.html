@@ -2086,11 +2086,11 @@ function makeExif(m,d){
   return u8concat([new Uint8Array([0xFF,0xE1,len>>8,len&255,0x45,0x78,0x69,0x66,0,0]),tiff,makeXmp(m)]);
 }
 // 写真そのものに分類情報を入れる（SiteBoxの写真と同じXMPの項目。写管屋はこれを読んで振り分ける）
-// 項目名はSiteBoxの写真に入っていたものに合わせる（「Contructor」の綴りもそのまま）
+// 項目名はSiteBoxの写真と写管屋の読み取り項目に合わせる（「Contructor」の綴りもそのまま。撮影箇所は ShootingSpot）
 function makeXmp(m){
   const P=PROJ_OVR||proj();
   const f=[['ConstructionName',P.name],['Contructor',P.sekou],['LargeClassification',m.daibunrui||'工事'],['PhotoClassification',m.kubun],
-    ['ConstructionType',m.koushu],['MiddleClassification',m.shubetsu],['SmallClassification',m.saibetsu],['Title',m.title]]
+    ['ConstructionType',m.koushu],['MiddleClassification',m.shubetsu],['SmallClassification',m.saibetsu],['Title',m.title],['ShootingSpot',m.sokuten]]
     .filter(([,v])=>String(v||'').trim()).map(([k,v])=>`<photo:${k}>${x(String(v).trim())}</photo:${k}>`).join(' ');
   const s=`http://ns.adobe.com/xap/1.0/\0<?xpacket begin="﻿" id="W5M0MpCehiHzreSzNTczkc9d"?> <x:xmpmeta xmlns:x="adobe:ns:meta/"> <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"> <rdf:Description rdf:about="" xmlns:photo="http://dcpadv.org/schema/3.0/photoinfo" xmlns:measurement="http://dcpadv.org/schema/3.0/measurement" xmlns:item="http://dcpadv.org/schema/3.0/measurementitem"> ${f} </rdf:Description> </rdf:RDF> </x:xmpmeta> <?xpacket end="w"?>`;
   const body=new TextEncoder().encode(s), len=body.length+2;
