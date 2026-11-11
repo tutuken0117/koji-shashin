@@ -459,6 +459,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
       </div>
       <div class="edsel" id="edSel" hidden>
         <div class="edselname" id="edSelName"></div>
+        <button class="edb hi" id="edPj" style="flex-basis:100%;min-height:32px;padding:2px 6px;font-size:13px">⚙ 工事を切り替える（設定へ）</button>
         <div class="edg" id="edTxt"><span>文字</span><button class="edb" id="edFsDn" aria-label="文字を小さく">A－</button><button class="edb" id="edFsUp" aria-label="文字を大きく">A＋</button></div>
         <div class="edg" id="edInd"><span>字下げ</span><button class="edb" id="edIndDn" aria-label="字下げを減らす">◀</button><button class="edb" id="edIndUp" aria-label="字下げを増やす">▶</button></div>
         <div class="edg full" id="edAl"><span>配置</span><button class="edb" data-al="left">左</button><button class="edb" data-al="center">中</button><button class="edb" data-al="right">右</button><button class="edb" data-al="justify">均等</button><button class="edb" data-al="spaced">1字</button></div>
@@ -1860,8 +1861,9 @@ function renderEdSide(){
   const att=sel.t==='sketch'||sel.t==='table';
   $('#edPos').hidden=!att; $('#edSz').hidden=!att;
   if(att){ const pos=sel.pos||'below'; $$('#edPos [data-pos]').forEach(b=>b.classList.toggle('on',b.dataset.pos===pos)); }
+  $('#edPj').hidden=!(sel.t==='row'&&sel.key==='kouji'&&!ED.photo); // 工事名のマスを選んだら、工事の切り替え（設定）へ行けるように
   $('#edTachi').hidden=sel.t!=='main'; $('#edTachi').classList.toggle('on',!!sel.tachi);
-  $('#edKeyWrap').hidden=sel.t!=='row';
+  $('#edKeyWrap').hidden=sel.t!=='row'||sel.key==='kouji'; // 工事名の欄は「工事を切り替える」ボタンを出すので、こちらは隠して1画面に収める
   if(sel.t==='row'){ const s=$('#edKey'); s.innerHTML=KEY_OPTS.map(([k,n])=>`<option value="${k}">${n}</option>`).join(''); s.value=sel.key||'free'; }
   $('#edRowAdd').hidden=sel.t!=='table'; $('#edRowDel').hidden=sel.t!=='table'; $('#edDiff').hidden=sel.t!=='table';
   $('#edDiff').classList.toggle('on',!!sel.diff);
@@ -1908,6 +1910,7 @@ function edAdd(type){
 }
 $('#edDone').onclick=()=>closeEditMode();
 $('#bGoShoot').onclick=()=>{ closeModal('mBoard'); if($('#mEdit').classList.contains('on')) closeEditMode(); if(curView!=='shoot') show('shoot'); };
+$('#edPj').onclick=()=>{ commitInline(); closeEditMode(); show('set'); };
 $('#edTpl').onclick=()=>{ commitInline(); openBoard('my'); };
 $('#edDesign').onclick=()=>{ commitInline(); openBoard('design'); };
 $('#edAddRow').onclick=()=>edAdd('row');
