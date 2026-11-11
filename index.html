@@ -616,6 +616,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
 <!-- 文字の候補 -->
 <div class="modal" id="mPick"><div class="sheet">
   <div class="hd"><h2 id="pkTitle">候補</h2><button class="x" data-close aria-label="閉じる">✕</button></div>
+  <div class="seg" id="pkSort" style="margin-bottom:8px"><button data-o="new">登録が新しい順</button><button data-o="old">登録が古い順</button></div>
   <div id="pkList" class="pklist"></div>
   <button class="btn block" id="pkCurBtn" hidden></button>
   <label class="f" for="pkNew">新しい候補を登録</label>
@@ -1641,6 +1642,21 @@ function loadWords(){
 }
 const wordsOf=key=>{ const s=wordLists[key], d=((isHY()&&HY_WORDS[key])||GEN_WORDS[key]||[]); return (s&&s.length)?s:d.slice(); };
 function saveWords(key,list){ wordLists[key]=list; LS.set('wordLists_'+curPj,wordLists); }
+// 候補の並び順：登録が新しい順／古い順。登録した時刻を覚えておく（前からある候補は、今の並び＝上ほど新しいとみなして時刻を振る）
+function wordTimes(key){
+  const l=wordsOf(key), t=wordLists['_t:'+key]||{};
+  l.forEach((w,i)=>{ if(t[w]==null) t[w]=l.length-i; }); // 実際の時刻より小さい数＝昔に登録した扱い
+  wordLists['_t:'+key]=t; return t;
+}
+const wordOrder=key=>wordLists['_o:'+key]||'';
+function addWord(key,w){
+  const l=wordsOf(key); if(l.includes(w)) return; const t=wordTimes(key);
+  t[w]=Date.now(); wordOrder(key)==='old'?l.push(w):l.unshift(w); saveWords(key,l);
+}
+function sortWords(key,o){
+  const t=wordTimes(key), l=wordsOf(key).slice().sort((a,b)=>o==='old'?t[a]-t[b]:t[b]-t[a]);
+  wordLists['_o:'+key]=o; saveWords(key,l);
+}
 // 撮影箇所（測点）の候補は「種別」ごとに分ける（例：種別が鉄塔敷地なら鉄塔のリスト、巡視路なら径間のリスト）
 function sokutenKey(){ const s=(board.values.shubetsu||'').trim(); return s?'sokuten@'+s:'sokuten'; }
 function listKey(k){ return k==='sokuten'?sokutenKey():k; }
@@ -1657,15 +1673,17 @@ function renderPicker(){
     row.querySelector('.pkw').textContent=w;
     row.querySelector('.pkw').onclick=()=>{ PICK.onPick(w); closeModal('mPick'); };
     // ▲▼で並び替え（▽のプルダウンの順番もこの順になる）
-    row.querySelectorAll('.pkmv').forEach((b,k)=>b.onclick=()=>{ const l=wordsOf(PICK.key), j=i+(k?1:-1); if(j<0||j>=l.length) return; [l[i],l[j]]=[l[j],l[i]]; saveWords(PICK.key,l); renderPicker(); });
+    row.querySelectorAll('.pkmv').forEach((b,k)=>b.onclick=()=>{ const l=wordsOf(PICK.key), j=i+(k?1:-1); if(j<0||j>=l.length) return; wordTimes(PICK.key); [l[i],l[j]]=[l[j],l[i]]; delete wordLists['_o:'+PICK.key]; saveWords(PICK.key,l); renderPicker(); }); // 手で動かしたら「〇〇順」は解除
     row.querySelector('.pkdel').onclick=()=>{ const l=wordsOf(PICK.key); l.splice(i,1); saveWords(PICK.key,l); renderPicker(); };
     box.appendChild(row);
   });
   $('#pkCurBtn').hidden=!PICK.cur||list.includes(PICK.cur);
   $('#pkCurBtn').textContent=`「${PICK.cur}」を候補に登録`;
+  $('#pkSort').hidden=list.length<2;
+  $$('#pkSort [data-o]').forEach(b=>{ b.classList.toggle('on',wordOrder(PICK.key)===b.dataset.o); b.onclick=()=>{ sortWords(PICK.key,b.dataset.o); renderPicker(); }; });
 }
-$('#pkAdd').onclick=()=>{ const v=$('#pkNew').value.trim(); if(!v) return; const l=wordsOf(PICK.key); if(!l.includes(v)) l.unshift(v); saveWords(PICK.key,l); $('#pkNew').value=''; renderPicker(); };
-$('#pkCurBtn').onclick=()=>{ const l=wordsOf(PICK.key); if(!l.includes(PICK.cur)) l.unshift(PICK.cur); saveWords(PICK.key,l); renderPicker(); };
+$('#pkAdd').onclick=()=>{ const v=$('#pkNew').value.trim(); if(!v) return; addWord(PICK.key,v); $('#pkNew').value=''; renderPicker(); };
+$('#pkCurBtn').onclick=()=>{ addWord(PICK.key,PICK.cur); renderPicker(); };
 
 /* ===================== 出来形モード ===================== */
 function toggleDekigata(){
