@@ -449,6 +449,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
     <div class="edkb"><label for="edKubun">区分</label><select id="edKubun"></select><span class="edstate" id="edState"></span></div>
     <button class="edb tpl" id="edTpl">📋 黒板編集</button>
     <button class="edb" id="edDesign">🎨 色・大きさ</button>
+    <button class="edb" id="edSet">⚙ 設定</button>
   </div>
   <div class="edmain">
     <div class="edwrap" id="edWrap"><canvas id="edCanvas"></canvas><div id="edPkBox"></div><div id="edInline"></div><div class="eddrop" id="edDrop" hidden></div></div>
@@ -471,6 +472,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
         <div class="edg full acts">
           <button class="edb hi" id="edPick">▽候補</button>
           <button class="edb" id="edType">⌨入力</button>
+          <button class="edb" id="edClr">🧹消す</button>
           <button class="edb" id="edDraw">✏️描く</button>
           <button class="edb tg" id="edDate">日付</button>
           <button class="edb tg" id="edTachi">立会者</button>
@@ -1733,6 +1735,7 @@ function renderEdit(){
   // 選んでいる項目を枠で示す
   if(ED.g&&ED.sel>=0){ const it=ED.g.items.find(i=>i.bi===ED.sel); if(it){ ctx.save(); ctx.strokeStyle='#ffb02e'; ctx.lineWidth=3*dpr; ctx.setLineDash([8*dpr,5*dpr]); ctx.strokeRect(it.rect[0]+2,it.rect[1]+2,it.rect[2]-4,it.rect[3]-4); ctx.restore(); } }
   $('#edDone').textContent=ED.photo?'✓ 直して保存':'📷 撮影';
+  $('#edSet').hidden=!!ED.photo; // 撮影した写真の黒板を直しているときは工事を変えられないように
   $('#edName').textContent=ED.photo?'撮影済み写真の黒板を修正中':(board.pname||'カスタム');
   renderEdSide();
   renderPkButtons();
@@ -1876,6 +1879,8 @@ function renderEdSide(){
   const h=ED.cell; const pk=h?pickKeyFor(h):null;
   $('#edSelName').textContent= h&&h.k==='tachi' ? '立会者' : sel.t==='row' ? `「${sel.label||'項目'}」` : names[sel.t];
   $('#edPick').hidden=!pk; $('#edType').hidden=!h||h.k==='sketch';
+  // 🧹消す：選んだマスの文字を一発で空にする（撮影日・差の列・絵は対象外）
+  $('#edClr').hidden=!h||!(h.k==='value'||h.k==='main'||h.k==='tachi'||h.k==='label'||h.k==='cell')||(h.k==='value'&&sel.key==='date')||(h.k==='cell'&&sel.diff&&h.c===3&&h.r>=0)||!fieldGet(h);
   const att=sel.t==='sketch'||sel.t==='table';
   $('#edPos').hidden=!att; $('#edSz').hidden=!att;
   if(att){ const pos=sel.pos||'below'; $$('#edPos [data-pos]').forEach(b=>b.classList.toggle('on',b.dataset.pos===pos)); }
@@ -1928,7 +1933,8 @@ function edAdd(type){
 }
 $('#edDone').onclick=()=>closeEditMode();
 $('#bGoShoot').onclick=()=>{ closeModal('mBoard'); if($('#mEdit').classList.contains('on')) closeEditMode(); if(curView!=='shoot') show('shoot'); };
-$('#edPj').onclick=()=>{ commitInline(); closeEditMode(); show('set'); };
+$('#edPj').onclick=$('#edSet').onclick=()=>{ commitInline(); closeEditMode(); show('set'); };
+$('#edClr').onclick=()=>{ const h=ED.cell; if(!h) return; commitInline(); fieldSet(h,''); renderEdit(); renderShootInfo(); toast('消しました',900); };
 $('#edTpl').onclick=()=>{ commitInline(); openBoard('my'); };
 $('#edDesign').onclick=()=>{ commitInline(); openBoard('design'); };
 $('#edAddRow').onclick=()=>edAdd('row');
@@ -2288,7 +2294,7 @@ function renderSet(){
   if(navigator.storage?.estimate) navigator.storage.estimate().then(e=>{ $('#storeInfo').textContent=`写真はこの端末のブラウザ内に保存されます（使用量 約${Math.round((e.usage||0)/1048576)}MB）。こまめに書き出してください。`; }).catch(()=>{});
 }
 $('#pjSel').onchange=async e=>{ curPj=e.target.value; saveProjects(); await switchProject(); renderSet(); };
-$('#pjAdd').onclick=async()=>{ const p={id:uid(),name:'',sekou:proj().sekou||DEFAULT_SEKOU,hacchu:proj().hacchu||'',daibunrui:'工事'}; projects.push(p); curPj=p.id; saveProjects(); await switchProject(); renderSet(); $('#pjN').focus(); };
+$('#pjAdd').onclick=async()=>{ const p={id:uid(),name:'',sekou:proj().sekou||DEFAULT_SEKOU,hacchu:'',daibunrui:'工事'}; /* 工事が変われば発注者も変わるので空から */ projects.push(p); curPj=p.id; saveProjects(); await switchProject(); renderSet(); $('#pjN').focus(); };
 ['pjN','pjS','pjH'].forEach(id=>$('#'+id).addEventListener('input',()=>{ const p=projects.find(p=>p.id===curPj); if(!p) return; p.name=$('#pjN').value; p.sekou=$('#pjS').value; p.hacchu=$('#pjH').value; saveProjects(); renderHeader(); }));
 
 $$('#qSeg button').forEach(b=>b.onclick=()=>{ prefs.quality=b.dataset.q; savePrefs(); renderSet(); releaseCam(); }); // 次に撮影画面へ戻ったとき、新しい画質に合った解像度でカメラを起動する
@@ -2344,8 +2350,7 @@ document.addEventListener('visibilitychange',()=>{ if(document.hidden) stopCam()
   try{ await DB.open(); }catch(e){ toast('この端末では写真を保存できません（プライベートモード等）',4000); }
   // 開いたらすぐ撮影できるよう、工事が無ければ自動で用意する（工事名は黒板の「内容」からいつでも入力）
   if(!projects.length){ projects.push({id:uid(),name:DEFAULT_KOUJI,sekou:DEFAULT_SEKOU,hacchu:DEFAULT_HACCHU,daibunrui:'工事',hy:true}); }
-  // 工事名・発注者が空のままの工事には、初期値を入れておく
-  projects.forEach(p=>{ if(!p.name) p.name=DEFAULT_KOUJI; if(!p.hacchu) p.hacchu=DEFAULT_HACCHU; });
+  // 空欄にした工事名・発注者はそのまま（起動のたびに初期値を入れ直さない）
   if(!curPj||!projects.some(p=>p.id===curPj)) curPj=projects[0].id;
   saveProjects();
   await switchProject().catch(()=>{});
