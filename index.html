@@ -250,6 +250,8 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
 .pklist{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;max-height:46vh;overflow-y:auto}
 .pkrow{display:flex;gap:6px}
 .pkw{flex:1;min-height:48px;border:1.5px solid var(--line);border-radius:10px;background:var(--bg);text-align:left;padding:8px 12px;font-size:16px;font-weight:700}
+.pkmv{width:44px;border:1.5px solid var(--line);border-radius:10px;background:var(--panel);font-size:15px}
+.pkmv:disabled{opacity:.3}
 .pkdel{width:48px;border:1.5px solid var(--line);border-radius:10px;background:var(--panel);color:var(--warn)}
 .inrow{display:flex;gap:6px;align-items:stretch}
 .inrow input,.inrow textarea{flex:1;min-width:0}
@@ -1651,9 +1653,11 @@ function renderPicker(){
   if(!list.length) box.innerHTML='<p class="muted">まだ候補がありません。下の欄から登録できます。</p>';
   list.forEach((w,i)=>{
     const row=document.createElement('div'); row.className='pkrow';
-    row.innerHTML=`<button class="pkw"></button><button class="pkdel" aria-label="候補から削除">✕</button>`;
+    row.innerHTML=`<button class="pkw"></button><button class="pkmv" aria-label="上へ"${i?'':' disabled'}>▲</button><button class="pkmv" aria-label="下へ"${i<list.length-1?'':' disabled'}>▼</button><button class="pkdel" aria-label="候補から削除">✕</button>`;
     row.querySelector('.pkw').textContent=w;
     row.querySelector('.pkw').onclick=()=>{ PICK.onPick(w); closeModal('mPick'); };
+    // ▲▼で並び替え（▽のプルダウンの順番もこの順になる）
+    row.querySelectorAll('.pkmv').forEach((b,k)=>b.onclick=()=>{ const l=wordsOf(PICK.key), j=i+(k?1:-1); if(j<0||j>=l.length) return; [l[i],l[j]]=[l[j],l[i]]; saveWords(PICK.key,l); renderPicker(); });
     row.querySelector('.pkdel').onclick=()=>{ const l=wordsOf(PICK.key); l.splice(i,1); saveWords(PICK.key,l); renderPicker(); };
     box.appendChild(row);
   });
