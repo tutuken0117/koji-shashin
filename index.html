@@ -249,10 +249,12 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
 /* 候補リスト */
 .pklist{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;max-height:46vh;overflow-y:auto}
 .pkrow{display:flex;gap:6px}
-.pkw{flex:1;min-height:48px;border:1.5px solid var(--line);border-radius:10px;background:var(--bg);text-align:left;padding:8px 12px;font-size:16px;font-weight:700}
-.pkmv{width:44px;border:1.5px solid var(--line);border-radius:10px;background:var(--panel);font-size:15px}
+.pkw{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-height:48px;border:1.5px solid var(--line);border-radius:10px;background:var(--bg);text-align:left;padding:8px 12px;font-size:16px;font-weight:700}
+.pkin{flex:1;min-width:0;min-height:48px;border:2px solid var(--accent)!important;border-radius:10px;padding:8px 12px!important;font-size:16px!important;font-weight:700}
+.pkmv{width:40px;flex:none;border:1.5px solid var(--line);border-radius:10px;background:var(--panel);font-size:15px}
 .pkmv:disabled{opacity:.3}
-.pkdel{width:48px;border:1.5px solid var(--line);border-radius:10px;background:var(--panel);color:var(--warn)}
+.pkmv.ok{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
+.pkdel{width:40px;flex:none;border:1.5px solid var(--line);border-radius:10px;background:var(--panel);color:var(--warn)}
 .inrow{display:flex;gap:6px;align-items:stretch}
 .inrow input,.inrow textarea{flex:1;min-width:0}
 .inrow .pk{flex:none;width:52px;border:1.5px solid var(--accent);border-radius:10px;background:var(--accent-soft);color:var(--accent);font-size:13px;font-weight:700;line-height:1.1}
@@ -1654,6 +1656,12 @@ function addWord(key,w){
   const l=wordsOf(key); if(l.includes(w)) return; const t=wordTimes(key);
   t[w]=Date.now(); wordOrder(key)==='old'?l.push(w):l.unshift(w); saveWords(key,l);
 }
+// 候補の書き直し（並びの位置と登録時刻はそのまま。空にしたときや、ほかの候補と同じ文字にしたときは変えない）
+function editWord(key,from,to){
+  if(!to||to===from) return; const l=wordsOf(key); if(l.includes(to)){ toast('同じ候補がすでにあります'); return; }
+  const i=l.indexOf(from); if(i<0) return; const t=wordTimes(key);
+  l[i]=to; t[to]=t[from]; delete t[from]; saveWords(key,l);
+}
 function sortWords(key,o){
   const t=wordTimes(key), l=wordsOf(key).slice().sort((a,b)=>o==='old'?t[a]-t[b]:t[b]-t[a]);
   wordLists['_o:'+key]=o; saveWords(key,l);
@@ -1670,11 +1678,21 @@ function renderPicker(){
   if(!list.length) box.innerHTML='<p class="muted">まだ候補がありません。下の欄から登録できます。</p>';
   list.forEach((w,i)=>{
     const row=document.createElement('div'); row.className='pkrow';
-    row.innerHTML=`<button class="pkw"></button><button class="pkmv" aria-label="上へ"${i?'':' disabled'}>▲</button><button class="pkmv" aria-label="下へ"${i<list.length-1?'':' disabled'}>▼</button><button class="pkdel" aria-label="候補から削除">✕</button>`;
+    row.innerHTML=`<button class="pkw"></button><button class="pkmv" aria-label="上へ"${i?'':' disabled'}>▲</button><button class="pkmv" aria-label="下へ"${i<list.length-1?'':' disabled'}>▼</button><button class="pkmv pked" aria-label="書き直す">✏️</button><button class="pkdel" aria-label="候補から削除">✕</button>`;
     row.querySelector('.pkw').textContent=w;
     row.querySelector('.pkw').onclick=()=>{ PICK.onPick(w); closeModal('mPick'); };
+    // ✏️：その場で文字を書き直す。✏️が✓に変わり、✓かEnterで保存
+    const ed=row.querySelector('.pked');
+    ed.onclick=()=>{
+      const inp=document.createElement('input'); inp.type='text'; inp.className='pkin'; inp.value=w;
+      row.querySelector('.pkw').replaceWith(inp); inp.focus();
+      ed.textContent='✓'; ed.classList.add('ok'); ed.setAttribute('aria-label','保存');
+      const save=()=>{ editWord(PICK.key,w,inp.value.trim()); renderPicker(); };
+      ed.onclick=save;
+      inp.onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); save(); } if(e.key==='Escape') renderPicker(); };
+    };
     // ▲▼で並び替え（▽のプルダウンの順番もこの順になる）
-    row.querySelectorAll('.pkmv').forEach((b,k)=>b.onclick=()=>{ const l=wordsOf(PICK.key), j=i+(k?1:-1); if(j<0||j>=l.length) return; wordTimes(PICK.key); [l[i],l[j]]=[l[j],l[i]]; delete wordLists['_o:'+PICK.key]; saveWords(PICK.key,l); renderPicker(); }); // 手で動かしたら「〇〇順」は解除
+    row.querySelectorAll('.pkmv:not(.pked)').forEach((b,k)=>b.onclick=()=>{ const l=wordsOf(PICK.key), j=i+(k?1:-1); if(j<0||j>=l.length) return; wordTimes(PICK.key); [l[i],l[j]]=[l[j],l[i]]; delete wordLists['_o:'+PICK.key]; saveWords(PICK.key,l); renderPicker(); }); // 手で動かしたら「〇〇順」は解除
     row.querySelector('.pkdel').onclick=()=>{ const l=wordsOf(PICK.key); l.splice(i,1); saveWords(PICK.key,l); renderPicker(); };
     box.appendChild(row);
   });
