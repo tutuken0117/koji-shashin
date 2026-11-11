@@ -282,13 +282,16 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
 #edCanvas{display:block;touch-action:manipulation;cursor:pointer}
 .edin{position:absolute;box-sizing:border-box;border:3px solid #ffb02e!important;border-radius:6px;background:rgba(10,14,12,.92)!important;color:#fff!important;padding:2px 8px!important;min-height:0!important;font-weight:700;resize:none;z-index:5;text-align:center}
 .edside{width:250px;flex:none;display:flex;flex-direction:column;gap:5px;overflow-y:auto}
-.edsel{display:flex;flex-wrap:wrap;gap:5px 8px;border-top:1px solid #3c4842;padding-top:5px}
+.edsel{display:flex;flex-wrap:wrap;gap:4px 6px;border-top:1px solid #3c4842;padding-top:4px}
+.addrows{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.addrows .btn{min-height:52px;font-size:17px;font-weight:700}
+.addrows .btn:last-child{grid-column:1/-1}
 .edsel[hidden]{display:none}
 .edg{display:flex;align-items:center;gap:3px;flex:1 1 auto}
 .edg.full{flex-basis:100%}
 .edg[hidden]{display:none}
 .edg span{font-size:11px;color:#cfd8d3;flex:none;margin-right:2px}
-.edg .edb{flex:1;min-height:34px;padding:2px 4px;font-size:13px;border-radius:8px}
+.edg .edb{flex:1;min-height:30px;padding:2px 4px;font-size:13px;border-radius:8px}
 .edg .edb.on,.edg .edb.tg.on{background:#3fa775;color:#06130c}
 .edg.acts{flex-wrap:wrap}
 .edg.acts .edb{flex:1 0 54px}
@@ -296,7 +299,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
 .edselname{flex-basis:100%;font-size:12px;color:#ffb02e;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .edkey{flex-basis:100%;display:flex;align-items:center;gap:6px;font-size:11px;color:#cfd8d3}
 .edkey[hidden]{display:none}
-.edkey select{flex:1;min-height:34px!important;padding:2px 6px!important;background:#26302b!important;color:#fff!important;border-color:#3c4842!important;font-size:16px!important}
+.edkey select{flex:1;min-height:30px!important;height:30px;padding:0 6px!important;background:#26302b!important;color:#fff!important;border-color:#3c4842!important;font-size:16px!important}
 .edkb{display:flex;align-items:center;gap:5px;flex:none}
 .edkb label{font-size:12px;font-weight:700;color:#9fd3b6}
 .edkb select{width:auto!important;max-width:190px;min-height:38px!important;padding:2px 8px!important;background:#26302b!important;color:#fff!important;border:1.5px solid #3fa775!important;font-size:16px!important;font-weight:700}
@@ -462,6 +465,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
       </div>
       <div class="edsel" id="edSel" hidden>
         <div class="edselname" id="edSelName"></div>
+        <label class="edkey" id="edKeyWrap">入る内容<select id="edKey"></select></label>
         <button class="edb hi" id="edPj" style="flex-basis:100%;min-height:32px;padding:2px 6px;font-size:13px">⚙ 工事を切り替える（設定へ）</button>
         <div class="edg" id="edTxt"><span>文字</span><button class="edb" id="edFsDn" aria-label="文字を小さく">A－</button><button class="edb" id="edFsUp" aria-label="文字を大きく">A＋</button></div>
         <div class="edg" id="edInd"><span>字下げ</span><button class="edb" id="edIndDn" aria-label="字下げを減らす">◀</button><button class="edb" id="edIndUp" aria-label="字下げを増やす">▶</button></div>
@@ -484,7 +488,6 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
           <button class="edb" id="edDown" aria-label="下へ">▼</button>
           <button class="edb danger" id="edDel" aria-label="削除">🗑</button>
         </div>
-        <label class="edkey" id="edKeyWrap">入る内容<select id="edKey"></select></label>
       </div>
     </div>
   </div>
@@ -619,6 +622,11 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
 </div></div>
 
 <!-- 文字の候補 -->
+<!-- ＋項目：どの項目を足すか選ぶ -->
+<div class="modal" id="mAddRow"><div class="sheet">
+  <div class="hd"><h2>追加する項目</h2><button class="x" data-close aria-label="閉じる">✕</button></div>
+  <div class="addrows" id="addRowList"></div>
+</div></div>
 <div class="modal" id="mPick"><div class="sheet">
   <div class="hd"><h2 id="pkTitle">候補</h2><button class="x" data-close aria-label="閉じる">✕</button></div>
   <div class="seg" id="pkSort" style="margin-bottom:8px"><button data-o="new">登録が新しい順</button><button data-o="old">登録が古い順</button></div>
@@ -1905,17 +1913,38 @@ function edMove(dir){
   [bl[i],bl[j]]=[bl[j],bl[i]]; board.blocks=normalizeBlocks(bl); ED.sel=board.blocks.indexOf(bl[j]===undefined?bl[i]:bl[j]);
   ED.sel=board.blocks.findIndex(x=>x===bl[j]); ED.cell=null; markCustom(); saveBoard(); renderEdit();
 }
-function edAdd(type){
+// ＋項目：まず「どの項目か」を選んでもらい、選んだ項目の欄を作る（黒板にすでにある項目は出さない）
+const ADD_ROW_KEYS=['kouji','koushu','shubetsu','saibetsu','sokuten','date','hacchu','sekou','free'];
+function openAddRow(){
+  commitInline();
+  if(board.blocks.length>=14){ toast('項目は多くても12個くらいまでにしてください'); return; }
+  const have=new Set(board.blocks.filter(b=>b.t==='row').map(b=>b.key));
+  const box=$('#addRowList'); box.innerHTML='';
+  ADD_ROW_KEYS.filter(k=>k==='free'||!have.has(k)).forEach(k=>{
+    const b=document.createElement('button'); b.className='btn';
+    b.textContent=k==='free'?'✏️ 自由に書く（項目名も入力）':FIELD_LABEL[k];
+    b.onclick=()=>{ closeModal('mAddRow'); edAdd('row',k); };
+    box.appendChild(b);
+  });
+  openModal('mAddRow');
+}
+function edAdd(type,key){
   commitInline();
   const bl=board.blocks;
   if(type==='row'){
     if(bl.length>=14){ toast('項目は多くても12個くらいまでにしてください'); return; }
-    const nb={t:'row',key:'free',label:'項目',value:''};
-    // 選んでいる項目の下に入れる（何も選んでいなければ中央の欄の上）
-    let at = ED.sel>=0 ? ED.sel+1 : bl.findIndex(isMid); if(at<0) at=bl.length;
+    key=key||'free';
+    const nb={t:'row',key,label:key==='free'?'項目':FIELD_LABEL[key],value:''};
+    // 発注者・施工者は下の段（発注者は施工者の上）。ほかは選んでいる項目の下（何も選んでいなければ中央の欄の上）
+    let at;
+    if(key==='hacchu'){ at=bl.findIndex(b=>b.key==='sekou'); if(at<0) at=bl.length; }
+    else if(key==='sekou') at=bl.length;
+    else { at = ED.sel>=0 ? ED.sel+1 : bl.findIndex(isMid); if(at<0) at=bl.length; }
     bl.splice(at,0,nb); board.blocks=normalizeBlocks(bl); ED.sel=board.blocks.indexOf(nb);
-    markCustom(); saveBoard(); renderEdit();
-    const it=ED.g.items.find(i=>i.bi===ED.sel); const h=ED.g.hits.find(h=>h.bi===ED.sel&&h.k==='label'); if(h){ ED.cell=h; startInline(h); }
+    markCustom(); saveBoard(); renderEdit(); renderShootInfo();
+    // 自由に書く欄は、項目名をすぐ入力。ほかはそのマスを選んだ状態にする
+    const h=ED.g.hits.find(h=>h.bi===ED.sel&&h.k===(key==='free'?'label':'value'));
+    if(h){ ED.cell=h; if(key==='free') startInline(h); else renderEdit(); }
     return;
   }
   if(type==='main'&&bl.some(b=>b.t==='main')){ toast('説明文の欄はすでにあります'); return; }
@@ -1937,7 +1966,7 @@ $('#edPj').onclick=$('#edSet').onclick=()=>{ commitInline(); closeEditMode(); sh
 $('#edClr').onclick=()=>{ const h=ED.cell; if(!h) return; commitInline(); fieldSet(h,''); renderEdit(); renderShootInfo(); toast('消しました',900); };
 $('#edTpl').onclick=()=>{ commitInline(); openBoard('my'); };
 $('#edDesign').onclick=()=>{ commitInline(); openBoard('design'); };
-$('#edAddRow').onclick=()=>edAdd('row');
+$('#edAddRow').onclick=()=>openAddRow();
 $('#edAddSketch').onclick=()=>edAdd('sketch');
 $('#edAddTable').onclick=()=>edAdd('table');
 $('#edAddMain').onclick=()=>edAdd('main');
